@@ -4,7 +4,6 @@ import { styled, withStyle } from "styletron-react";
 import Modal from "./modal";
 import { createElement } from "react";
 import FileFinder from "./file-search";
-import { DarkTheme, IosevkaFont } from "./theme";
 
 const componentPadding = 10;
 const componentBorderRadius = 2;
@@ -19,6 +18,11 @@ const Root = styled("div", {
 });
 
 const LeftPanel = styled("div", {
+  width: "300px",
+  height: "100%"
+});
+
+const RightPanel = styled("div", {
   width: "300px",
   height: "100%"
 });
@@ -72,7 +76,7 @@ export class Workspace extends React.Component<Props> {
     const modal: ReactNode = createElement(Modal, { visible: false }, createElement(FileFinder));
     const leftPanel: ReactNode = createElement(LeftPanel, null);
     const centerItem: ReactNode = createElement(BackgroundMessage, { className: "keystroke" }, "Press Ctrl-T to browse files");
-    const rightPanel: ReactNode = createElement(Pane, null);
+    const rightPanel: ReactNode = createElement(RightPanel, null);
     return createElement(
       Root,
       {},
