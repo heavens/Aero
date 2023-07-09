@@ -2,28 +2,37 @@ use std::{
     borrow::Cow,
     fs::{canonicalize, read},
 };
+use ipc::Ipc;
 use wry::{
     application::{
         event::{Event, StartCause, WindowEvent},
         event_loop::{ControlFlow, EventLoop},
         window::WindowBuilder,
     },
-    http::{header::CONTENT_TYPE, Request, Response},
+    http::{header::{CONTENT_TYPE}, Request, Response},
     webview::WebViewBuilder,
 };
+use zephyr_shared::messages::Action;
 
-const PROTOCOL: &'static str = "zephyr";
+mod ipc;
+
+const PROTOCOL: &'static str = "aero";
 
 fn main() -> wry::Result<()> {
     // Construct our event loop.
     let event_loop = EventLoop::new();
     let builder = WindowBuilder::new()
-        .with_title("Zephyr")
+        .with_decorations(false)
+        .with_title("Aero")
         .build(&event_loop)?;
+
+    // The IPC handler used to receive and send messages across the frontend and backend processes. 
+    let ipc: Ipc<Action> = Ipc::new();
 
     // Build the webview. A naive approach currently, but it works for now.
     let _webview = WebViewBuilder::new(builder)?
         .with_custom_protocol(PROTOCOL.into(), handle_req)
+        .with_ipc_handler(move |window, name| ipc.process_message(window, name))
         .with_url(&format!("{}://localhost:3000/dist/index.html", PROTOCOL))?
         .build()?;
 
@@ -48,6 +57,8 @@ fn handle_req(request: &Request<Vec<u8>>) -> wry::Result<Response<Cow<'static, [
     let content = read(canonicalize(path)?)?;
     let mimetype = if path.ends_with(".html") || path == "/" {
         "text/html"
+    } else if path.ends_with(".css") {
+        "text/css"
     } else if path.ends_with(".js") {
         "text/javascript"
     } else if path.ends_with(".png") {
@@ -57,7 +68,7 @@ fn handle_req(request: &Request<Vec<u8>>) -> wry::Result<Response<Cow<'static, [
     } else {
         "text/html"
     };
-    
+
     Response::builder()
         .header(CONTENT_TYPE, mimetype)
         .body(Cow::Owned(content))

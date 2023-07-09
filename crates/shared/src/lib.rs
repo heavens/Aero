@@ -5,6 +5,7 @@ use futures::Stream;
 
 pub mod rt;
 pub mod error;
+pub mod messages;
 
 pub type WindowId = usize;
 pub type WorkspaceId = usize;
