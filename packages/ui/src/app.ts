@@ -3,7 +3,9 @@ import { Provider as StyletronProvider } from "styletron-react";
 import { KeyBinding } from "./action";
 import { Workspace } from "./workspace";
 import { Client } from "styletron-engine-atomic";
-import ThemeProvider, { DarkTheme, LightTheme } from "./theme";
+import ThemeProvider from "./theme";
+import TitleBar from "./window/titlebar";
+import StatusBar from "./window/status-bar";
 
 const keyBindings: KeyBinding[] = [
   { key: "cmd-t", context: "Workspace", action: "ToggleFileFinder" },
@@ -65,6 +67,7 @@ const keyBindings: KeyBinding[] = [
 
 type Props = {
   inBrowser: boolean;
+  darkMode: boolean;
 };
 
 const client = new Client();
@@ -76,13 +79,16 @@ export default class App extends React.Component<Props> {
   }
 
   render(): ReactNode {
+    const { darkMode, inBrowser } = this.props;
     return createElement(
       StyletronProvider,
       { value: client },
       createElement(
         ThemeProvider,
-        { isDark: false },
-        createElement(Workspace, { inBrowser: false })
+        { isDark: darkMode },
+        createElement(TitleBar, { title: "Aero", darkMode }),
+        createElement(Workspace, { inBrowser, darkMode }),
+        createElement(StatusBar, { darkMode })
       )
     );
   }

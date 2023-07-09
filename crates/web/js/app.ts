@@ -6,16 +6,18 @@ const client = new RpcClient(new Worker("server.js"));
 const websocketURL = new URL("/ws", window.location.href);
 websocketURL.protocol = "ws";
 client.sendMessage({ type: "ConnectToWebsocket", url: websocketURL.href });
+
 let loading = true;
-function start_client() {
+function startClient() {
   if (loading) {
     const el = document.getElementById("app");
     const root = createRoot(el);
     root.render(createElement(App, {
-      inBrowser: false
+      inBrowser: false,
+      darkMode: false,
     }));
     loading = false;
   }
 }
 
-start_client();
+startClient();
