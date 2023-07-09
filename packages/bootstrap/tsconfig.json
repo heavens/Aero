@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "module": "NodeNext",
+      "lib": ["ES2023"],
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "resolveJsonModule": true,
+      "importHelpers": true,
+      "target": "ESNext",
+      "allowUnreachableCode": false,
+      "allowUnusedLabels": false,
+      "noImplicitReturns": true,
+      "noFallthroughCasesInSwitch": true,
+      "sourceMap": false,
+      "noEmit": true,
+    },
+    "compileOnSave": false
+  }
+  

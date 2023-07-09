@@ -1,11 +1,11 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "jsx": "react",
+        "jsx": "preserve",
         "composite": true,
         "moduleResolution": "node",
         "lib": ["DOM", "ESNext"],
-        "noEmit": true,
+        "types": ["react", "react-dom"],
         "outDir": "dist",
         "rootDir": "src",
     },
