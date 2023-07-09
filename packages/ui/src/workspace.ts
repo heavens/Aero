@@ -1,12 +1,10 @@
 import React, { ReactNode } from "react";
 import ReactDOM from "react-dom";
-import { styled, withStyle } from "styletron-react";
+import { styled } from "styletron-react";
 import Modal from "./modal";
 import { createElement } from "react";
 import FileFinder from "./file-search";
-
-const componentPadding = 10;
-const componentBorderRadius = 2;
+import BackgroundTips from "./components/BackgroundTips";
 
 const Root = styled("div", {
   position: "relative",
@@ -29,7 +27,7 @@ const RightPanel = styled("div", {
 
 const Pane = styled("div", {
   flex: 1,
-  position: "relative"
+  position: "static"
 });
 
 const PaneInner = styled("div", {
@@ -40,43 +38,25 @@ const PaneInner = styled("div", {
   right: 0
 });
 
-const BackgroundTip = styled("div", {
-  height: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center"
-});
-
-const BackgroundMessage = withStyle(BackgroundTip, {
-  userSelect: "none",
-  padding: `0 ${componentPadding * 3}px`,
-  transition: "opacity .3s ease-in-out",
-  ".keystroke": {
-    border: "2px solid",
-    padding: `0 ${componentPadding / 2}px`,
-    borderRadius: `${componentBorderRadius * 3}`,
-    fontFamily: ["Iosevka", "sans-serif"]
-  }
-});
-
 type Props = {
   inBrowser: boolean;
+  darkMode: boolean;
   modal?: string;
   leftPanel?: string;
   centerPanel?: string;
 };
 
 export class Workspace extends React.Component<Props> {
-  
+
   constructor(props: Props) {
     super(props);
   }
 
   render() {
     const modal: ReactNode = createElement(Modal, { visible: false }, createElement(FileFinder));
-    const leftPanel: ReactNode = createElement(LeftPanel, null);
-    const centerItem: ReactNode = createElement(BackgroundMessage, { className: "keystroke" }, "Press Ctrl-T to browse files");
-    const rightPanel: ReactNode = createElement(RightPanel, null);
+    const leftPanel: ReactNode = createElement(LeftPanel);
+    const centerItem: ReactNode = createElement(BackgroundTips);
+    const rightPanel: ReactNode = createElement(RightPanel);
     return createElement(
       Root,
       {},
