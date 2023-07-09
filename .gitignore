@@ -1,0 +1,18 @@
+# Generated directories by yarn
+.yarn
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+!.yarn/cache
+.pnp.*
+
+# Project-related directories
+dist
+# Temp ignore font-related assets as they can get a bit unruly in size... :/
+static/*.ttf
+wasm/pkg
+target
+node_modules
+.vscode

@@ -1,0 +1,14 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "jsx": "react",
+        "composite": true,
+        "moduleResolution": "node",
+        "lib": ["DOM", "ESNext"],
+        "noEmit": true,
+        "outDir": "dist",
+        "rootDir": "src",
+    },
+    "include": ["**/*"],
+    "exclude": ["node_modules"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "zephyr-web",
+  "packageManager": "yarn@3.5.0",
+  "main": "./js/app.ts",
+  "dependencies": {
+    "assert": "^2.0.0",
+    "typescript": "^5.1.6",
+    "ws": "^8.13.0",
+    "zephyr-ui": "workspace:^"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ESNext"
+    ],
+    "declaration": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "target": "ES2019",
+    "preserveConstEnums": true,
+    "skipLibCheck": true,
+    "useUnknownInCatchVariables": false,
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "zephyr-ui": [
+        "./packages/ui/src/"
+      ],
+      "zephyr-wasm": [
+        "./crates/web/js/"
+      ],
+    },
+    "types": []
+  }
+}

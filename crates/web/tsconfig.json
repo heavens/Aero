@@ -1,0 +1,10 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "outDir": "dist",
+        "module": "ESNext",
+        "lib": ["ESNext", "DOM"],
+    },
+    "include": ["packages/ui/src/**/*.ts", "js/*.ts"],
+    "exclude": ["dist", "node_modules"]
+}
