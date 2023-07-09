@@ -12,6 +12,7 @@
 dist
 # Temp ignore font-related assets as they can get a bit unruly in size... :/
 static/*.ttf
+static/icons
 wasm/pkg
 target
 node_modules
