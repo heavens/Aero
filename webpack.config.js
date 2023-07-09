@@ -1,6 +1,14 @@
 const path = require('path');
 const webpack = require("webpack");
 const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const isProduction = typeof NODE_ENV !== 'undefined' && NODE_ENV === 'production';
+const stylesHandler = isProduction ? MiniCssExtractPlugin.loader : "style-loader";
+
+const port = 3000;
+const publicPath = `http://aero.localhost:${port}/dist/`
 
 module.exports = {
     mode: "development",
@@ -18,8 +26,14 @@ module.exports = {
     output: {
         filename: "[name].js",
         path: path.resolve(__dirname, "dist"),
+        publicPath
     },
     plugins: [
+        new HtmlWebpackPlugin({
+            filename: "index.html",
+            publicPath: path.resolve(__dirname, "dist"),
+        }),
+        new webpack.HotModuleReplacementPlugin(),
         new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, "crates", "web"),
             args: '--log-level warn',
@@ -35,19 +49,22 @@ module.exports = {
     },
     devServer: {
         host: "localhost",
-        port: 3000,
-        static: path.resolve(__dirname, "static")
+        port,
     },
     module: {
         rules: [
             {
-                test: /\.ts?$/,
+                test: /\.(ts|tsx)$/,
                 use: "ts-loader",
-                exclude: /node_modules/
+                exclude: /node_modules/,
             },
             {
                 test: /\.css$/i,
-                use: ["style-loader", "css-loader"],
+                use: [stylesHandler, "css-loader"],
+            },
+            {
+                test: /\.less$/i,
+                use: [stylesHandler, "css-loader", "less-loader"],
             },
         ]
     },
