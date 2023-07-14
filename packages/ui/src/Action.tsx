@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
-import { createElement } from "react";
 import { styled } from "styletron-react";
+import { KeyBinding, contextMatches, keystrokeStringForEvent } from "./keybinding";
 
 const Root = styled("div", { width: "100%", height: "100%" });
 
@@ -13,12 +13,6 @@ class ActionSet {
     this.actions = new Map();
   }
 }
-
-export type KeyBinding = {
-  key: string;
-  action: string;
-  context: string;
-};
 
 type ActionDispatcherProps = {
   children?: ReactNode[];
@@ -36,7 +30,7 @@ export class ActionDispatcher extends React.Component<ActionDispatcherProps> {
   }
 
   render() {
-    return createElement(Root, { onKeyDown: this.handleKeyDown }, this.props.children);
+    return <Root onKeyDown={this.handleKeyDown}>{this.props.children}</Root>
   }
 
   handleKeyDown(event: React.KeyboardEvent) {
@@ -130,7 +124,7 @@ export class Action extends React.Component<ActionProps> {
   }
 
   render() {
-    return createElement("div");
+    return <div></div>
   }
 
   componentDidMount() {
@@ -145,50 +139,4 @@ export class Action extends React.Component<ActionProps> {
   }
 }
 
-function keystrokeStringForEvent(event: React.KeyboardEvent) {
-  let keystroke = "";
-  if (event.ctrlKey) {
-    keystroke = "ctrl";
-  }
-  if (event.altKey) {
-    keystroke = appendKeystrokeElement(keystroke, "alt");
-  }
-  if (event.shiftKey) {
-    keystroke = appendKeystrokeElement(keystroke, "shift");
-  }
-  if (event.metaKey) {
-    keystroke = appendKeystrokeElement(keystroke, "cmd");
-  }
-  switch (event.key) {
-    case "ArrowDown":
-      return appendKeystrokeElement(keystroke, "down");
-    case "ArrowUp":
-      return appendKeystrokeElement(keystroke, "up");
-    case "ArrowLeft":
-      return appendKeystrokeElement(keystroke, "left");
-    case "ArrowRight":
-      return appendKeystrokeElement(keystroke, "right");
-    default:
-      return appendKeystrokeElement(keystroke, event.key.toLowerCase());
-  }
-}
-
-function appendKeystrokeElement(keyString: string, element: string) {
-  if (keyString.length > 0) keyString += "-";
-  keyString += element;
-  return keyString;
-}
-
-function contextMatches(context: React.Context<any>, expression: string[]) {
-  let expressionStartIndex = 0;
-  for (let i = 0; i < expression.length; i++) {
-    if (expression[i] == " ") {
-      const component = expression.slice(expressionStartIndex, i);
-      if (!context) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
 

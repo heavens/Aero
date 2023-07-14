@@ -2,6 +2,17 @@ import React, { ReactNode } from "react";
 import ReactDOM from "react-dom";
 import { styled } from "styletron-react";
 
+const Backdrop = styled("div", {
+  position: "absolute",
+  top: "0",
+  left: "0",
+  width: "100vw",
+  height: "100vh",
+  background: "rgba(0, 0, 0, 0.4)",
+  backdropFilter: "blur(5px)",
+  opacity: 1
+});
+
 const Root = styled("div", {
   position: "absolute",
   top: 0,
@@ -9,18 +20,22 @@ const Root = styled("div", {
   right: 0,
   width: "min-content",
   margin: "auto",
-  outline: "none"
+  outline: "none",
 });
 
 export type ModalProps = {
   visible: boolean;
-  children?: ReactNode[];
+  children?: ReactNode;
 }
 
 export default class Modal extends React.Component<ModalProps> {
   previouslyFocusedElement: HTMLElement | Element | null;
   render() {
-    return React.createElement(Root, { tabIndex: -1, key: "modal", $style: { visibility: this.props.visible ? "visible" : "hidden" } }, this.props.children);
+    return <Backdrop>
+      <Root tabIndex={-1} key={"modal"} style={{ visibility: this.props.visible ? "visible" : "hidden" }}>
+        {this.props.children}
+      </Root>
+    </Backdrop>
   }
 
   componentDidMount() {

@@ -3,6 +3,7 @@ import { styled } from "styletron-react";
 import { DarkTheme, LightTheme } from "../theme";
 import { Octicon } from "../components/octicon/Octicon";
 import { gear, lightBulb, moon } from "../components/octicon/octicons";
+import Spinner from "../components/Spinner";
 
 const Root = styled("div", (props: { $isDark: boolean }) => ({
     display: "flex",
@@ -12,6 +13,7 @@ const Root = styled("div", (props: { $isDark: boolean }) => ({
     width: "100%",
     height: "31px",
     padding: "0 30px",
+    background: "#e9ecef",
     borderTop: `1px solid ${props.$isDark ? DarkTheme.borderColor : LightTheme.borderColor}`,
 }));
 
@@ -31,9 +33,10 @@ const ActionButton = styled("button", {
     borderColor: "transparent",
     backgroundColor: "transparent",
     ":hover": {
+        color: "white",
         borderColor: "#8a9199",
         cursor: "pointer",
-        backgroundColor: "#8a91991a"
+        backgroundColor: "#8a919980"
     }
 });
 
@@ -48,7 +51,11 @@ const StatusMessage = styled("div", {
     justifyContent: "flex-end",
     fontSize: "12px",
     fontWeight: "bold",
-    userSelect: "none"
+    userSelect: "none",
+    ":hover": {
+        cursor: "pointer",
+        textDecorationLine: "underline",
+    }
 });
 
 type Props = {
@@ -67,7 +74,7 @@ export default class StatusBar extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            busy: false,
+            busy: true,
             message: "Initializing...",
         }
     }
@@ -85,7 +92,7 @@ export default class StatusBar extends React.Component<Props, State> {
 
     renderMessage(message: ReactNode, busy: boolean) {
         return <StatusContainer>
-
+            {busy && <Spinner width={16} height={16}/>}
             <StatusMessage>{message}</StatusMessage>
         </StatusContainer>
     }

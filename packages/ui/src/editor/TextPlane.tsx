@@ -1,8 +1,9 @@
-import React, { RefObject, createElement } from "react";
+import React, { ReactNode, RefObject } from "react";
 import { DarkTheme, RGBAColor, Theme } from "../theme";
-import { Point } from "./text-editor";
+import { Point } from "./types";
 
 type TextPlaneProps = {
+  children?: ReactNode;
   scrollTop: number;
   firstVisibleRow: number;
   totalRowCount: number;
@@ -35,42 +36,25 @@ type TextPlaneProps = {
 //   }
 // });
 
-export class TextPlane extends React.Component<TextPlaneProps> {
-  canvas: HTMLCanvasElement;
+export default class TextPlane extends React.Component<TextPlaneProps> {
+  canvasRef: RefObject<HTMLCanvasElement>;
   gl: WebGL2RenderingContext;
   renderer: Renderer;
 
   constructor(props: TextPlaneProps) {
     super(props);
-    this.handleCanvas = this.handleCanvas.bind(this);
   }
 
   render() {
-    return createElement("canvas", {
-      ref: this.handleCanvas,
-      id: "text-canvas",
-      className: this.props.className,
-      width: this.props.width * window.devicePixelRatio,
-      height: this.props.height * window.devicePixelRatio,
-      style: {
-        width: this.props.width + "px",
-        height: this.props.height + "px"
-      }
-    });
-  }
+    return <canvas id="text-canvas" ref={this.canvasRef} className={this.props.className} style={{ width: this.props.width + "px", height: this.props.height + "px" }} width={this.props.width * window.devicePixelRatio} height={this.props.height * window.devicePixelRatio}>
 
-  handleCanvas(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
+    </canvas>;
   }
 
   componentDidMount(): void {
   }
 
   componentDidUpdate() {
-    if (this.canvas == null) {
-      this.canvas = document.getElementById("text-canvas") as HTMLCanvasElement;
-    }
-
     const cursorColors = [
       { r: 31, g: 150, b: 255, a: 1 },
       { r: 64, g: 181, b: 87, a: 1 },
@@ -78,6 +62,7 @@ export class TextPlane extends React.Component<TextPlaneProps> {
       { r: 216, g: 49, b: 176, a: 1 },
       { r: 235, g: 221, b: 91, a: 1 }
     ];
+
     const selectionColors = cursorColors.map((color: RGBAColor) => {
       color = Object.assign({}, color);
       color.a = 0.5;
@@ -86,7 +71,7 @@ export class TextPlane extends React.Component<TextPlaneProps> {
 
     const computedLineHeight = this.props.lineHeight;
     if (!this.gl) {
-      this.gl = this.canvas.getContext("webgl2");
+      this.gl = this.canvasRef.current.getContext("webgl2");
       this.renderer = new Renderer(this.gl, DarkTheme);
     }
 
@@ -132,8 +117,6 @@ export class TextPlane extends React.Component<TextPlaneProps> {
     return this.renderer != null;
   }
 }
-
-export default TextPlane;
 
 const shadersPromise = import("./shaders");
 
@@ -392,7 +375,7 @@ class Renderer {
       SOLID_INSTANCE_SIZE_IN_BYTES,
       0
     );
-    
+
     this.gl.vertexAttribDivisor(shaders.solidAttributes.targetOrigin, 1);
     this.gl.enableVertexAttribArray(shaders.solidAttributes.targetSize);
     this.gl.vertexAttribPointer(
@@ -468,7 +451,7 @@ class Renderer {
       totalRowCount,
       textColor
     );
-    
+
     const lineGlyphCount = this.populateLineGlyphInstances(
       scrollTop,
       firstVisibleRow,

@@ -6,14 +6,26 @@ import { OcticonSymbolType } from "./octicons"
 interface OcticonProps {
   readonly type: OcticonSymbolType;
   readonly styled?: React.CSSProperties;
+  readonly attributes?: React.AriaAttributes;
   readonly className?: string;
 }
 
-export class Octicon extends React.Component<OcticonProps, {}> {
+type OcticonState = {
+  active: boolean;
+}
+
+export class Octicon extends React.Component<OcticonProps, OcticonState> {
   private svgRef: RefObject<SVGSVGElement>;
 
+  constructor(props: OcticonProps) {
+    super(props);
+    this.state = {
+      active: false,
+    };
+  }
+
   public render() {
-    const { type } = this.props;
+    const { type, attributes } = this.props;
     const viewBox = `0 0 ${type.w} ${type.h}`;
     const className = classNames('octicon', this.props.className);
     const style = {
@@ -30,6 +42,9 @@ export class Octicon extends React.Component<OcticonProps, {}> {
         ref={this.svgRef}
         tabIndex={-1}
         style={style}
+        {...attributes}
+        onMouseEnter={() => this.setState({ active: true })}
+        onMouseLeave={() => this.setState({ active: false })}
       >
         <path fillRule={type.fr} d={type.d} />
       </svg>
