@@ -64,8 +64,7 @@ function getJsFriendlyName(name: string) {
  * @returns A promise for the code-generating task of Octicons.
  */
 async function* generateIconData() {
-  const octicons = await require('@primer/octicons')
-
+  const octicons = await require('@primer/octicons');
   for (const name of Object.keys(octicons).sort()) {
     const octicon = octicons[name]
 
@@ -113,7 +112,10 @@ function writeIcon(stream: fs.WriteStream, icon: OcticonProps) {
  */
 async function run() {
   const startTimestamp = Date.now();
-  console.log(`Creating octicons...`);
+  console.log("============================================================");
+  console.log("|| Using latest @primer/octicons release                  ||");
+  console.log("|| Starting octicon codegen                               ||");
+  console.log("============================================================");
   const out = fs.createWriteStream(
     Path.resolve(__dirname, '../ui/src/components/octicon/octicons.ts'),
     {
