@@ -1,17 +1,46 @@
 import React from "react";
 import { ReactNode } from "react";
-import { styled } from "styletron-react";
-import { DarkTheme, LightTheme } from "../theme";
+import { Ctx, Theme } from "../Theme";
 import { Octicon } from "../components/octicon/Octicon";
 import { x, zoomOut } from "../components/octicon/octicons";
 import { RendererIpc } from "..";
+import { styled, withStyle } from "styletron-react";
+
+const WindowControlContainer = styled("div", {
+  display: "flex",
+  justifyContent: "space-evenly",
+  maxHeight: "inherit"
+});
+
+const WindowControl = styled("button", (props: { $theme?: Theme }) => ({
+  display: "flex",
+  flex: "1",
+  alignItems: "center",
+  justifyContent: "center",
+  borderColor: "transparent",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  backgroundColor: "transparent"
+}));
+
+const BasicWindowControl = withStyle(WindowControl, (props: { $theme: Theme }) => ({
+  ":hover": {
+    backgroundColor: `${props.$theme.colors.palette["gray"]}70`
+  }
+}));
+
+const DangerWindowControl = withStyle(WindowControl, (props: { $theme: Theme }) => ({
+  ":hover": {
+    backgroundColor: `${props.$theme.colors.palette["red"]}90`
+  }
+}));
 
 /**
  * The root component of the titlebar with an optional `$isDark` property used to conditionally set the LaF.
  */
-const StyledTitleBar = styled("div", (props: { $isDark?: boolean }) => ({
-  background: "#e9ecef",
-  borderBottom: `1px solid ${props.$isDark ? DarkTheme.borderColor : LightTheme.borderColor}`,
+const StyledTitleBar = styled("div", (props: { $theme?: Theme }) => ({
+  background: props.$theme.colors.app.bg,
+  borderBottom: `1px solid ${props.$theme.colors.titleBar.border}`,
 }));
 
 type Props = {
@@ -22,11 +51,10 @@ type Props = {
   controls?: boolean;
   hidden?: boolean;
   isMaximized?: boolean;
-  darkMode: boolean;
-  onCloseClick?: () => void;
-  onMinimizeClick?: () => void;
-  onMaximizeClick?: () => void;
-  onRestoreDownClick?: () => void;
+  onCloseClick?: CallableFunction;
+  onMinimizeClick?: CallableFunction;
+  onMaximizeClick?: CallableFunction;
+  onRestoreDownClick?: CallableFunction;
 }
 
 /**
@@ -65,13 +93,9 @@ export default class TitleBar extends React.Component<Props> {
 
   render() {
     const {
-      children,
       style,
-      controls,
       title,
       hidden,
-      isWindowFocused,
-      ...props
     } = this.props;
 
     let styled: React.CSSProperties;
@@ -82,21 +106,24 @@ export default class TitleBar extends React.Component<Props> {
       });
     }
 
+    const theme = this.context as Theme;
     return (
-      <StyledTitleBar className="titlebar" $isDark={props.darkMode}>
+      <StyledTitleBar className="titlebar" $theme={theme}>
         <span className="drag-region" />
         <div className="titlebar-header drag-region">
           {title}
         </div>
-        <div className="window-controls">
-          <button className="window-control basic-control" onClick={this.minimizeWindow}>
-            <Octicon type={zoomOut} />
-          </button>
-          <button className="window-control x-window" onClick={this.closeWindow}>
-            <Octicon type={x} />
-          </button>
-        </div>
+        <WindowControlContainer>
+          <BasicWindowControl $theme={theme} onClick={this.minimizeWindow}>
+            <Octicon styled={{ fill: theme.colors.titleBar.activeForeground }} type={zoomOut} />
+          </BasicWindowControl>
+          <DangerWindowControl $theme={theme} onClick={this.closeWindow}>
+            <Octicon styled={{ fill: theme.colors.titleBar.activeForeground }} type={x} />
+          </DangerWindowControl>
+        </WindowControlContainer>
       </StyledTitleBar>
     );
   }
 }
+
+TitleBar.contextType = Ctx;

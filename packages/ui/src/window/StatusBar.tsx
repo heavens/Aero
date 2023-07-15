@@ -1,11 +1,13 @@
 import React, { ReactNode } from "react";
-import { styled } from "styletron-react";
-import { DarkTheme, LightTheme } from "../theme";
+import { Ctx, DarkTheme, LightTheme, Theme } from "../Theme";
 import { Octicon } from "../components/octicon/Octicon";
-import { gear, lightBulb, moon } from "../components/octicon/octicons";
+import { gear, lightBulb, moon, sun } from "../components/octicon/octicons";
 import Spinner from "../components/Spinner";
+import { WorkspaceStatus, activeTheme, onWorkspaceStatusUpdate } from "../events";
+import { styled } from "styletron-react";
+import { Subscription } from "rxjs";
 
-const Root = styled("div", (props: { $isDark: boolean }) => ({
+const Root = styled("div", (props: { $theme?: Theme }) => ({
     display: "flex",
     alignItems: "center",
     bottom: "0",
@@ -13,8 +15,8 @@ const Root = styled("div", (props: { $isDark: boolean }) => ({
     width: "100%",
     height: "31px",
     padding: "0 30px",
-    background: "#e9ecef",
-    borderTop: `1px solid ${props.$isDark ? DarkTheme.borderColor : LightTheme.borderColor}`,
+    background: props.$theme.colors.statusBar.bg,
+    borderTop: `1px solid ${props.$theme.colors.statusBar.border}`,
 }));
 
 const QuickActions = styled("div", {
@@ -60,40 +62,59 @@ const StatusMessage = styled("div", {
 
 type Props = {
     children?: ReactNode[];
-    darkMode: boolean;
     notificationsEnabled?: boolean;
+    openSettings?: () => void;
 }
 
 type State = {
-    busy: boolean;
-    message: string;
+    status: WorkspaceStatus;
 }
 
 export default class StatusBar extends React.Component<Props, State> {
 
+    private statusSubscription: Subscription;
+
     constructor(props: Props) {
         super(props);
         this.state = {
-            busy: true,
-            message: "Initializing...",
+            status: { title: "" },
+        }
+    }
+
+    componentDidMount(): void {
+        this.statusSubscription = onWorkspaceStatusUpdate.subscribe(newStatus => this.setState({ status: newStatus }))
+    }
+
+    componentWillUnmount(): void {
+        if (this.statusSubscription != null && !this.statusSubscription.closed) {
+            this.statusSubscription.unsubscribe();
+            this.statusSubscription = null;
         }
     }
 
     render() {
-        const { busy, message } = this.state;
-        return <Root $isDark={this.props.darkMode}>
+        let theme = this.context as Theme;
+        return <Root $theme={theme}>
             <QuickActions>
-                <ActionButton><Octicon type={gear} /></ActionButton>
-                <ActionButton><Octicon type={this.props.darkMode ? lightBulb : moon} /></ActionButton>
+                <ActionButton onClick={this.props.openSettings}><Octicon styled={{ fill: theme.colors.app.fg }} type={gear} /></ActionButton>
+                <ActionButton onClick={() => {
+                    activeTheme.next(theme.isDark ? LightTheme : DarkTheme);
+                }}>
+                    <Octicon styled={{ fill: theme.colors.app.fg }} type={theme.isDark ? sun : moon} />
+                </ActionButton>
             </QuickActions>
-            {this.renderMessage(message, busy)}
+            {this.renderMessage(theme)}
         </Root>
     }
 
-    renderMessage(message: ReactNode, busy: boolean) {
+    renderMessage(theme: Theme) {
+        const { status } = this.state;
+        const isBusy = status.title.length > 0;
         return <StatusContainer>
-            {busy && <Spinner width={16} height={16}/>}
-            <StatusMessage>{message}</StatusMessage>
+            {isBusy && <Spinner style={{ fill: theme.colors.app.fg }} width={16} height={16} />}
+            <StatusMessage>{status.title}</StatusMessage>
         </StatusContainer>
     }
 }
+
+StatusBar.contextType = Ctx;

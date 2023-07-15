@@ -1,10 +1,12 @@
 import React from "react";
-import RpcClient from "./rpc-client";
-import App from "./app";
+import App from "./App";
+import RpcConnection from "./rpc";
 
 declare global {
     interface Window {
         ipc: any;
+
+        rpc: RpcConnection;
     }
 }
 
@@ -12,6 +14,6 @@ export const RendererIpc = window.ipc;
 
 export {
     React,
-    RpcClient,
-    App
+    App,
+    RpcConnection as RpcClient
 }

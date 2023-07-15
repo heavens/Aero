@@ -1,11 +1,14 @@
-import React, { ReactNode, createElement } from "react";
-import { Provider as StyletronProvider } from "styletron-react";
-import { KeyBinding } from "./action";
-import { Workspace } from "./workspace";
-import { Client } from "styletron-engine-atomic";
-import ThemeProvider from "./theme";
-import TitleBar from "./window/titlebar";
-import StatusBar from "./window/status-bar";
+import React from "react";
+import { Provider as StyletronProvider, styled } from "styletron-react";
+import { KeyBinding } from "./keybinding";
+import { Client as StyletronEngine } from "styletron-engine-atomic";
+import TitleBar from "./window/TitleBar";
+import StatusBar from "./window/StatusBar";
+import Workspace from "./editor/Workspace";
+import { Theme, LightTheme, ThemeProvider } from "./Theme";
+import { Subject, Subscription, takeUntil } from "rxjs";
+import { onThemeChange } from "./events";
+import { Settings } from "./settings/Settings";
 
 const keyBindings: KeyBinding[] = [
   { key: "cmd-t", context: "Workspace", action: "ToggleFileFinder" },
@@ -66,30 +69,65 @@ const keyBindings: KeyBinding[] = [
 ];
 
 type Props = {
-  inBrowser: boolean;
-  darkMode: boolean;
+  browser: boolean;
 };
 
-const client = new Client();
+type State = {
+  theme: Theme
+  settingsOpen: boolean;
+}
 
-export default class App extends React.Component<Props> {
+const styleEngine = new StyletronEngine();
+
+const AppRoot = styled("div", (props: { $theme?: Theme }) => ({
+  fontFamily: props.$theme.fontFamily,
+  fontSize: `${props.$theme.fontSize}px`,
+  backgroundColor: props.$theme.colors.app.bg,
+  color: props.$theme.colors.app.fg,
+  height: "100%",
+  width: "100%",
+  display: "flex",
+}));
+
+export default class App extends React.Component<Props, State> {
+
+  private subscription: Subscription;
+  private destroyed: Subject<boolean>;
 
   constructor(props: Props) {
     super(props);
+    this.destroyed = new Subject();
+    this.state = {
+      theme: LightTheme,
+      settingsOpen: false,
+    };
   }
 
-  render(): ReactNode {
-    const { darkMode, inBrowser } = this.props;
-    return createElement(
-      StyletronProvider,
-      { value: client },
-      createElement(
-        ThemeProvider,
-        { isDark: darkMode },
-        createElement(TitleBar, { title: "Aero", darkMode }),
-        createElement(Workspace, { inBrowser, darkMode }),
-        createElement(StatusBar, { darkMode })
-      )
-    );
+  componentDidMount(): void {
+    this.subscription = onThemeChange.pipe(takeUntil(this.destroyed)).subscribe(theme => {
+      this.setState({ theme });
+    });
+  }
+
+  componentWillUnmount(): void {
+    if (this.destroyed != null && !this.destroyed.closed) {
+      this.destroyed.next(true);
+      this.subscription.unsubscribe();
+      this.destroyed = null;
+    }
+  }
+
+  render() {
+    const { browser } = this.props;
+    return <StyletronProvider value={styleEngine}>
+      <ThemeProvider value={this.state.theme}>
+        <AppRoot $theme={this.state.theme}>
+          <TitleBar title={"Aero"} />
+          <Workspace inBrowser={browser} />
+          {this.state.settingsOpen && <Settings><>Hi</></Settings>}
+          <StatusBar openSettings={() => this.setState({ settingsOpen: !this.state.settingsOpen})}/>
+        </AppRoot>
+      </ThemeProvider>
+    </StyletronProvider>
   }
 }

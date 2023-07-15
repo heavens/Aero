@@ -1,6 +1,6 @@
 import React, { ReactNode, RefObject } from "react";
-import { DarkTheme, RGBAColor, Theme } from "../theme";
 import { Point } from "./types";
+import { RGBAColor, DarkTheme, Theme } from "../Theme";
 
 type TextPlaneProps = {
   children?: ReactNode;

@@ -1,7 +1,8 @@
-export default class RpcClient {
+export default class RpcConnection {
     worker: Worker;
     constructor(worker: Worker) {
         this.worker = worker;
+        console.log("created rpc");
     }
 
     onMessage(callback: any) {

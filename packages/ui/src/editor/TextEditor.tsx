@@ -36,7 +36,7 @@ type TextEditorProps = {
     start: Point;
     end: Point;
   };
-  horizontal_margin?: number;
+  horizontalMargin?: number;
 };
 
 type TextEditorState = {
@@ -375,26 +375,26 @@ export class TextEditor extends React.Component<TextEditorProps, TextEditorState
   }
 
   flushHorizontalAutoscroll() {
-    const { horizonAutoscroll: horizontal_autoscroll, horizontal_margin, width } = this.props;
+    const { horizonAutoscroll, horizontalMargin, width } = this.props;
     const gutterWidth = this.getGutterWidth();
     const baseCharWidth = this.getBaseCharacterWidth();
     if (
-      horizontal_autoscroll &&
+      horizonAutoscroll &&
       width &&
       gutterWidth &&
       baseCharWidth &&
       this.canUseTextPlane()
     ) {
-      const horizontalMarginInPixels = baseCharWidth * horizontal_margin;
+      const horizontalMarginInPixels = baseCharWidth * horizontalMargin;
       const desiredScrollLeft =
         this.textPlane.measureLine(
-          horizontal_autoscroll.startingLine,
-          horizontal_autoscroll.start.column
+          horizonAutoscroll.startingLine,
+          horizonAutoscroll.start.column
         ) - horizontalMarginInPixels;
       const desiredScrollRight =
         this.textPlane.measureLine(
-          horizontal_autoscroll.endingLine,
-          horizontal_autoscroll.end.column
+          horizonAutoscroll.endingLine,
+          horizonAutoscroll.end.column
         ) +
         gutterWidth +
         horizontalMarginInPixels;

@@ -1,9 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { styled } from "styletron-react";
 import Modal from "../Modal";
-import SearchMenu from "../components/SearchMenu";
+import SearchMenu from "../components/CommandMenu";
 import BackgroundTips from "../components/BackgroundTips";
+import { styled } from "styletron-react";
+import { Ctx, Theme } from "../Theme";
 
 const Root = styled("div", {
   display: "flex",
@@ -17,7 +18,6 @@ const Root = styled("div", {
 const LeftPanel = styled("div", {
   width: "300px",
   height: "100%",
-  borderRight: "1px solid #dbdbdc"
 });
 
 const RightPanel = styled("div", {
@@ -40,7 +40,6 @@ const PaneInner = styled("div", {
 
 type Props = {
   inBrowser: boolean;
-  darkMode: boolean;
   modal?: string;
   leftPanel?: string;
   centerPanel?: string;
@@ -82,11 +81,12 @@ export default class Workspace extends React.Component<Props, State> {
   }
 
   render() {
+    let theme = this.context as Theme;
     return <Root>
       <LeftPanel />
       <Pane>
         <PaneInner>
-          <BackgroundTips darkMode={this.props.darkMode} />
+          <BackgroundTips theme={theme} />
         </PaneInner>
       </Pane>
       {
@@ -100,3 +100,5 @@ export default class Workspace extends React.Component<Props, State> {
     </Root>
   }
 }
+
+Workspace.contextType = Ctx;

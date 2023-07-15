@@ -1,5 +1,6 @@
 import React from "react";
 import { styled } from "styletron-react";
+import { Theme } from "../Theme";
 
 const componentPadding = 10;
 
@@ -13,19 +14,14 @@ const Container = styled("div", {
     justifyContent: "center",
 });
 
-const BackgroundMessage = styled("div", (props: { $clickable?: boolean }) => ({
-    display: props.$clickable ? "flex" : null,
+const BackgroundMessage = styled("div", (props: { $theme: Theme }) => ({
+    color: props.$theme.colors.app.fg,
     alignItems: "center",
     userSelect: "none",
     padding: `0 ${componentPadding * 3}px`,
-    transition: "opacity .3s ease-in-out",
-    opacity: "0.6",
-    ":hover": props.$clickable ? {
-        opacity: "1",
-    } : null,
 }));
 
-const KeyboardButton = styled("kbd", (props: { $isDark: boolean; $clickable?: boolean }) => ({
+const KeyboardButton = styled("kbd", (props: { $theme?: Theme; $clickable?: boolean }) => ({
     backgroundColor: "#eee",
     borderRadius: "3px",
     border: "1px solid #b4b4b4",
@@ -36,6 +32,7 @@ const KeyboardButton = styled("kbd", (props: { $isDark: boolean; $clickable?: bo
     fontWeight: 700,
     padding: "4px",
     margin: "0 8px",
+    opacity: "0.6",
     whiteSpace: "nowrap",
     ":hover": props.$clickable ? {
         cursor: "pointer"
@@ -43,7 +40,7 @@ const KeyboardButton = styled("kbd", (props: { $isDark: boolean; $clickable?: bo
 }));
 
 type Props = {
-    darkMode: boolean;
+    theme: Theme;
 }
 
 export default class BackgroundTips extends React.Component<Props> {
@@ -52,16 +49,13 @@ export default class BackgroundTips extends React.Component<Props> {
     }
 
     render() {
-        const { darkMode } = this.props;
+        const { theme } = this.props;
         return <Container className="keystroke">
-            <BackgroundMessage>Press
-                <KeyboardButton $isDark={darkMode}>CTRL</KeyboardButton>
+            <BackgroundMessage $theme={theme}>Press
+                <KeyboardButton>CTRL</KeyboardButton>
                 +
-                <KeyboardButton $isDark={darkMode}>T</KeyboardButton>
-                to browse files
-            </BackgroundMessage>
-            <BackgroundMessage $clickable>
-                Open <KeyboardButton $isDark={darkMode} $clickable>settings</KeyboardButton>
+                <KeyboardButton>K</KeyboardButton>
+                to open the command menu
             </BackgroundMessage>
         </Container>
     }
