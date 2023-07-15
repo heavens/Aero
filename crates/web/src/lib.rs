@@ -1,83 +1,62 @@
-use io::Receiver;
-use io::Sender;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use aero_engine::{event::{AeroEvent, Notification, Request}, window::WindowId};
+use js_sys::Promise;
+use std::fmt::Debug;
 use wasm_bindgen::prelude::*;
-use zephyr_shared::error::ZephyrError;
-use zephyr_shared::rt::Task;
-use zephyr_shared::ViewId;
 
-mod connection;
-mod io;
-mod logger;
 mod message;
-mod stream;
+mod task;
 
-#[derive(Serialize, Debug)]
-pub enum OutgoingMessage {}
-
-#[derive(Deserialize, Debug)]
-#[serde(tag = "type")]
-pub enum IncomingMessage {
-    Action { view_id: ViewId, action: Value },
-}
-
-#[derive(Clone)]
-pub struct RuntimeExecutor {
-    state: Arc<Mutex<ExecutorState>>,
-}
-
-pub struct ExecutorState {
-    next_task_id: usize,
-    active_tasks: HashMap<usize, Task<()>>,
-}
-
-impl ExecutorState {
-    /// Pushes a task into the collection of active tasks, incrementing the `next_task_id` counter by 1.
-    pub fn push_task(&mut self, task: Task<()>) {
-        let task_id = self.next_task_id;
-        self.active_tasks.insert(task_id, task);
-        self.next_task_id += 1;
-    }
+#[wasm_bindgen]
+pub struct AeroServer {
+    running: bool,
 }
 
 #[wasm_bindgen]
-pub struct ZephyrServer {
-    executor: RuntimeExecutor,
-}
-
-impl RuntimeExecutor {
-    fn new() -> Self {
-        Self {
-            state: Arc::new(Mutex::new(ExecutorState {
-                next_task_id: 0,
-                active_tasks: HashMap::new(),
-            })),
-        }
-    }
-
-    /// Invokes the specified closure `func` synchronously, blocking the current thread until completion.
-    pub fn with_sync_state(&self, func: impl Fn(&mut ExecutorState)) -> Result<(), ZephyrError> {
-        {
-            let mut guard = self
-                .state
-                .lock()
-                .map_err(|err| ZephyrError::Other(err.to_string()))?;
-            (func)(&mut guard);
-        }
-        Ok(())
-    }
-}
-
-#[wasm_bindgen]
-impl ZephyrServer {
+impl AeroServer {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        ZephyrServer {
-            executor: RuntimeExecutor::new(),
+        Self { running: false }
+    }
+
+    #[wasm_bindgen]
+    pub fn initialize(&mut self, request: &JsValue) -> Promise {
+        if self.running {
+            log::warn!("caught attempt to re-spawn an active server process.");
+            return Promise::reject(&JsValue::null());
         }
+
+        
+        self.running = true;
+        let decoded = serde_wasm_bindgen::from_value(request.clone());
+        if let Err(e) = decoded {
+            return Promise::reject(&JsValue::from_str(&e.to_string()))
+        }
+
+        let decoded: Request = decoded.unwrap();
+        let decoded_str = format!("got init request: {:?}", decoded);
+        log4wasm::info!(decoded_str);
+
+        let window_id = WindowId::new();
+        Promise::resolve(&serde_wasm_bindgen::to_value(&Notification::Initialized { window_id: *window_id }).unwrap_or_else(|_| JsValue::null()))
+    }
+
+    #[wasm_bindgen(js_name = onMessage)]
+    pub fn on_message(&self, msg: JsValue) {
+        let decoded = serde_wasm_bindgen::from_value(msg).unwrap_or_else(|_| AeroEvent::Notification(Notification::Error));
+        let fmt = format!("received msg {:?}", decoded);
+        log4wasm::info!(fmt);
+    }
+}
+
+impl Drop for AeroServer {
+    fn drop(&mut self) {
+        self.running = false;
+    }
+}
+
+impl Debug for AeroServer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ServerService")
+            .finish()
     }
 }

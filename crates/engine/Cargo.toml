@@ -1,11 +1,15 @@
 [package]
-name = "zephyr-shared"
+name = "aero-engine"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-futures = { version = "0.3.28", features = ["executor"]}
+async-channel = "1.9.0"
 futures-lite = "1.13.0"
+log = "0.4.19"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
 thiserror = "1.0.41"
+
+['cfg(not(target_family = "wasm"))'.dependencies]
+async-net = "1.7.0"

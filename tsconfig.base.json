@@ -22,7 +22,7 @@
       ],
       "zephyr-wasm": [
         "./crates/web/js/"
-      ],
+      ]
     },
     "types": []
   }

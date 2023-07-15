@@ -6,8 +6,9 @@ edition = "2021"
 rust-version = "1.60"
 
 [dependencies]
+aero-engine = { path = "../engine", version = "0.1.0" }
+log = "0.4"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 time = { version = "0.3.20", features = ["serde"] }
 wry = "0.29.0"
-zephyr-shared = { path = "../shared", version = "0.1.0" }

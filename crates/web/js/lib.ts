@@ -1,2 +1,2 @@
 import("../pkg/zephyr");
-export { Receiver } from "./types";
+export { Receiver } from "./api";
