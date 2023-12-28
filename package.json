@@ -12,7 +12,7 @@
     "./packages/bootstrap"
   ],
   "devDependencies": {
-    "@tauri-apps/cli": "^1.4.0",
+    "@tauri-apps/cli": "^1.5.6",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "@types/reserved-words": "^0.1.0",
