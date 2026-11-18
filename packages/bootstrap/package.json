@@ -1,6 +1,23 @@
 {
-    "name": "zephyr-bootstrap",
-    "packageManager": "yarn@3.5.0",
-    "version": "0.0.1",
-    "license": "MIT"
+  "name": "aero-bootstrap",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "generate-icons": "ts-node -P tsconfig.json generate-icons.ts"
+  },
+  "dependencies": {
+    "@primer/octicons": "^19.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/reserved-words": "^0.1.4",
+    "@types/to-camel-case": "^1.0.2",
+    "@types/xml2js": "^0.4.14",
+    "reserved-words": "^0.1.2",
+    "to-camel-case": "^1.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "xml2js": "^0.6.2"
+  }
 }

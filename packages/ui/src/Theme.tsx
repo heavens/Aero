@@ -1,24 +1,13 @@
-import React, { ReactElement, ReactNode, useContext } from "react";
-
-/**
- * A 4 channel color structure where 3 of the channels are used to store the RGB values and the last is reserved for alpha support.
- * The RGB channels are 8-bit wide values and the alpha channel usually stores a floating-point value of 0.0 - 1.0.
- */
-export type RGBAColor = {
-    r: number;
-    g: number;
-    b: number;
-    a: number;
-}
-
-export type TextColor = string;
+type TextColor = string;
 
 type ColorProfileMap = {
+    accent: TextColor;
     palette: Object;
-    app: AppColorProfile;
+    pane: PaneColorProfile;
     input: InputColorProfile;
     list: ListColorProfile;
     titleBar: TitleBarColorProfile;
+    sideBar: SideBarColorProfile;
     statusBar: StatusBarColorProfile;
 }
 
@@ -28,7 +17,14 @@ type StatusBarColorProfile = {
     border: TextColor;
 }
 
-type AppColorProfile = {
+type PaneColorProfile = {
+    fg: TextColor;
+    bg: TextColor;
+    border: TextColor;
+    borderAccent?: TextColor;
+}
+
+type SideBarColorProfile = {
     fg: TextColor;
     bg: TextColor;
     border: TextColor;
@@ -50,18 +46,18 @@ type InputColorProfile = {
 }
 
 type ListColorProfile = {
-    activeSelectionBackground: TextColor,
-    activeSelectionForeground: TextColor,
-    focusBackground: TextColor,
-    focusForeground: TextColor,
-    focusOutline: TextColor,
-    highlightForeground: TextColor,
-    deemphasizedForeground: TextColor,
-    hoverBackground: TextColor,
-    inactiveSelectionBackground: TextColor,
-    inactiveSelectionForeground: TextColor,
-    invalidItemForeground: TextColor,
-    errorForeground: TextColor,
+    activeSelectionBackground: TextColor;
+    activeSelectionForeground: TextColor;
+    focusBackground: TextColor;
+    focusForeground: TextColor;
+    focusOutline: TextColor;
+    highlightForeground: TextColor;
+    deemphasizedForeground: TextColor;
+    hoverBackground: TextColor;
+    inactiveSelectionBackground: TextColor;
+    inactiveSelectionForeground: TextColor;
+    invalidItemForeground: TextColor;
+    errorForeground: TextColor;
 }
 
 /**
@@ -84,18 +80,20 @@ export interface Theme {
 export const DarkTheme: Theme = {
     isDark: true,
     colors: {
+        accent: "#e6b450",
         palette: {
             gray: "#565b66",
             red: "#FF0000",
         },
-        app: {
-            bg: "#0b0e14",
-            fg: "#565b66",
-            border: "#1b1f29"
+        pane: {
+            bg: "#10141c",
+            fg: "#bfbdb6",
+            border: "#0d1017",
+            borderAccent: "#1b1f29"
         },
         input: {
             bg: "#0d1017",
-            fg: "#8a9199",
+            fg: "#8a919966",
             border: "#565b6645",
             placeholderForeground: "#565b6680"
         },
@@ -114,21 +112,26 @@ export const DarkTheme: Theme = {
             errorForeground: "#d95757",
         },
         titleBar: {
-            activeBackground: "#0b0e14",
+            activeBackground: "#0d1017",
             activeForeground: "#bfbdb6",
-            inactiveBackground: "#0b0e14",
+            inactiveBackground: "#0d1017",
             inactiveForeground: "#565b66",
-            border: "#0b0e14"
+            border: "#11151c"
+        },
+        sideBar: {
+            bg: "#0d1017",
+            fg: "#565b66",
+            border: "#11151c"
         },
         statusBar: {
-            bg: "#0b0e14",
+            bg: "#0d1017",
             fg: "#565b66",
             border: "#1b1f29"
         }
     },
     fontFamily: "Iosevka",
-    fontSize: 16,
-    lineHeight: 1
+    fontSize: 14,
+    lineHeight: 14,
 };
 
 /**
@@ -137,20 +140,21 @@ export const DarkTheme: Theme = {
 export const LightTheme: Theme = {
     isDark: false,
     colors: {
+        accent: "#ffaa33",
         palette: {
             gray: "#565b66",
             red: "#FF0000",
         },
-        app: {
-            bg: "#f8f9fa",
-            fg: "#8a9199",
+        pane: {
+            bg: "#fcfcfc",
+            fg: "#343b58",
             border: "#5D768F1a"
         },
         input: {
             bg: "#fcfcfc",
             fg: "#5c6166",
             border: "#8a919945",
-            placeholderForeground: "#8a919980"
+            placeholderForeground: "#8a919945"
         },
         list: {
             activeSelectionBackground: "#56728f1f",
@@ -173,40 +177,18 @@ export const LightTheme: Theme = {
             inactiveForeground: "#8a9199",
             border: "#6b7d8f1a"
         },
-        statusBar: {
-            bg: "#fcfcfc",
-            fg: "#8a9199",
+        sideBar: {
+            bg: "#f8f9fa",
+            fg: "#1B1D1E",
             border: "#6b7d8f1a"
+        },
+        statusBar: {
+            bg: "#f8f9fa",
+            fg: "#8a9199",
+            border: "#6b7d8f1f"
         }
     },
     fontFamily: "Iosevka",
     fontSize: 16,
-    lineHeight: 1
-};
-
-export type ThemeContext = Theme;
-export const Ctx = React.createContext(LightTheme);
-export const ThemeProvider = Ctx.Provider;
-export const ThemeConsumer = Ctx.Consumer;
-
-export type Props = {
-    children?: ReactElement | ReactElement[];
-    theme: Theme;
-}
-
-export class Context extends React.Component<Props> {
-
-    static contextType = Ctx;
-
-    constructor(props: Props) {
-        super(props);
-    }
-
-    render() {
-        return <ThemeConsumer>{(theme) => {
-            return React.Children.map(this.props.children, (child) => {
-                return React.cloneElement(child, { theme: theme })
-            })
-        }}</ThemeConsumer>
-    }
+    lineHeight: 22,
 }

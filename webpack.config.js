@@ -4,18 +4,15 @@ const { ProvidePlugin } = require("webpack");
 const { merge } = require("webpack-merge");
 const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const express = require("express");
-const http = require("http");
-const ws = require("ws");
-const webpackDev = require("webpack-dev-middleware");
+const CopyPlugin = require("copy-webpack-plugin");
 
-const isProduction = env.NODE_ENV !== 'undefined' && env.NODE_ENV === 'production';
+const isProduction = env.NODE_ENV === 'production';
 const stylesHandler = isProduction ? MiniCssExtractPlugin.loader : "style-loader";
 
 const common = {
-    mode: "development",
+    mode: isProduction ? "production" : "development",
     resolve: {
-        extensions: [".ts", ".tsx", ".js", ".jsx", ".wasm"]
+        extensions: [".ts", ".tsx", ".js", ".jsx", ".wasm", ".svg"]
     },
     experiments: {
         asyncWebAssembly: true,
@@ -29,10 +26,15 @@ const webworker = merge({}, common, {
         filename: "worker.js",
         path: path.join(__dirname, "dist"),
     },
+    plugins: [
+        new ProvidePlugin({
+            process: 'process/browser',
+        })
+    ],
     module: {
         rules: [
             {
-                test: /\.ts$/,
+                test: /\.(ts$|tsx)/,
                 use: "ts-loader",
                 exclude: /node_modules/,
             },
@@ -43,22 +45,15 @@ const webworker = merge({}, common, {
                     "css-loader",
                     "less-loader",
                 ],
-            },
+            }
         ]
     },
     devServer: {
         hot: true,
         host: "localhost",
-        // port: 3000,
         client: {
             overlay: true,
             progress: true,
-            // webSocketURL: {
-            //     hostname: '0.0.0.0',
-            //     pathname: '/ws',
-            //     port: 8080,
-            //     protocol: 'ws',
-            // },
         },
         static: {
             directory: path.resolve(__dirname, "dist"),
@@ -67,7 +62,9 @@ const webworker = merge({}, common, {
 });
 
 const main = merge({}, common, {
-    // TODO(mack): Cheapfix for now until I get around to organizing bundles otherwise webpack complains that we're making too fat of assets.
+    target: "web",
+    // TODO(mack): Cheapfix for now until I get around to organizing bundles otherwise webpack complains that we're making 
+    // too fat of assets.
     performance: {
         hints: false,
         maxEntrypointSize: 512000,
@@ -75,7 +72,6 @@ const main = merge({}, common, {
     },
     entry: {
         main: "./crates/web/js/app.ts",
-        lib: "./crates/web/js/lib.ts"
     },
     output: {
         filename: "[name].js",
@@ -85,17 +81,33 @@ const main = merge({}, common, {
         new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, "crates", "web"),
             args: '--log-level warn',
-            outName: "zephyr",
-            outDir: path.resolve(__dirname, "crates", "web", "pkg")
+            inName: "aero",
+            outName: "aero",
+            outDir: path.resolve(__dirname, "packages", "ui", "src", "engine")
         }),
         new ProvidePlugin({
             process: 'process/browser',
-        })
+        }),
+        new CopyPlugin({
+            patterns: [
+                { from: "static/index.html" },
+                { from: "static/iosevka-regular.ttf" },
+                { from: "static/codicon.ttf" },
+                { from: "static/octicons.woff" },
+            ],
+        }),
+        ...(isProduction ? [new MiniCssExtractPlugin()] : []),
     ],
+    resolve: {
+        extensions: [".ts", ".tsx", ".js", ".jsx", ".wasm"],
+        alias: {
+            "@": path.resolve(__dirname, "packages", "ui", "src")
+        }
+    },
     module: {
         rules: [
             {
-                test: /\.(ts|tsx)$/,
+                test: /\.(ts$|tsx)/,
                 use: "ts-loader",
                 exclude: /node_modules/,
             },
@@ -108,65 +120,12 @@ const main = merge({}, common, {
                 ],
             },
             {
-                test: /\.(png|svg|jpg|jpeg|gif)$/i,
-                type: 'asset/resource',
-            },
-            {
-                test: /\.(woff|woff2|eot|ttf|otf)$/i,
-                type: 'asset/resource',
+                test: /\.svg$/i,
+                issuer: /\.[jt]sx?$/,
+                use: ['@svgr/webpack'],
             },
         ]
     }
 });
 
 module.exports = [webworker, main];
-
-// const websocketServer = new ws.Server({ host: "localhost", port: "8080", path: "/ws" });
-// websocketServer.on("connection", async ws => {
-//     const connection = new Socket();
-
-//     let incomingMessage = null;
-//     let remainingBytes = 0;
-//     connection.on("data", data => {
-//         let offset = 0;
-//         while (offset < data.length) {
-//             if (incomingMessage) {
-//                 assert(remainingBytes !== 0, "remainingBytes should not be 0");
-//                 const copiedBytes = data.copy(
-//                     incomingMessage,
-//                     incomingMessage.length - remainingBytes,
-//                     offset,
-//                     offset + remainingBytes
-//                 );
-//                 remainingBytes -= copiedBytes;
-//                 offset += copiedBytes;
-//             } else {
-//                 remainingBytes = data.readUInt32BE(offset);
-//                 incomingMessage = Buffer.alloc(remainingBytes);
-//                 offset += 4;
-//             }
-
-//             if (incomingMessage && remainingBytes === 0) {
-//                 try {
-//                     ws.send(incomingMessage);
-//                 } catch (error) {
-//                     console.error("Error sending to web socket:", error);
-//                 }
-//                 incomingMessage = null;
-//             }
-//         }
-//     });
-
-//     await new Promise(resolve => {
-//         connection.connect(
-//             { host: "localhost", port: 8080 },
-//             resolve
-//         );
-//     });
-//     ws.on("message", message => {
-//         const bufferLengthHeader = Buffer.alloc(4);
-//         bufferLengthHeader.writeUInt32BE(message.length, 0);
-//         connection.write(Buffer.concat([bufferLengthHeader, message]));
-//     });
-//     ws.on("close", () => connection.destroy());
-// });

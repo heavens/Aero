@@ -1,103 +1,106 @@
 use aero_engine::event::{AeroEvent, Request as AeroRequest};
-use app::AeroContext;
-use wry::{
-    application::{
-        dpi::PhysicalSize,
-        event::{Event, StartCause, WindowEvent},
-        event_loop::{ControlFlow, EventLoop},
-        menu::MenuBar,
-        window::WindowBuilder,
-    },
-    webview::WebViewBuilder,
+use app::{AeroContext, UserEvent};
+use tao::{
+    dpi::PhysicalSize,
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoopBuilder},
+    window::WindowBuilder,
 };
+use wry::WebViewBuilder;
 
 mod app;
 mod utils;
 
-const PROTOCOL: &'static str = "aero";
-
-const APP_NAME: &'static str = "Aero";
+const PROTOCOL: &str = "aero";
+const APP_NAME: &str = "Aero";
 
 fn main() -> wry::Result<()> {
-    const HOST: Option<&str> = option_env!("AERO_HOST");
-    const PORT: Option<&str> = option_env!("AERO_PORT");
-    const CHANNEL: Option<&str> = option_env!("AERO_CHANNEL");
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    // Construct our event loop.
-    let event_loop: EventLoop<AeroEvent> = EventLoop::with_user_event();
+    let channel = std::env::var("AERO_CHANNEL").unwrap_or_else(|_| "development".into());
+    let on_dev_channel = channel == "development";
+    let url = if on_dev_channel {
+        let host = std::env::var("AERO_HOST").unwrap_or_else(|_| "localhost".into());
+        let port = std::env::var("AERO_PORT").unwrap_or_else(|_| "8080".into());
+        format!("http://{host}:{port}/")
+    } else {
+        format!("{PROTOCOL}://localhost/index.html")
+    };
 
-    // The window struct for Aero.
+    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let aero = AeroContext::new(&event_loop);
+    let size = PhysicalSize::new(aero.window().width(), aero.window().height());
+
     let window = WindowBuilder::new()
-        .with_inner_size(PhysicalSize::new(
-            aero.window().width(),
-            aero.window().height(),
-        ))
-        .with_min_inner_size(PhysicalSize::new(
-            aero.window().width(),
-            aero.window().height(),
-        ))
-        .with_menu(MenuBar::new())
+        .with_inner_size(size)
+        .with_min_inner_size(size)
         .with_decorations(false)
         .with_title(APP_NAME)
         .with_closable(true)
-        .build(&event_loop)?;
+        .build(&event_loop)
+        .expect("failed to create window");
 
-    let host = HOST.unwrap_or_else(|| "localhost");
-    let port = PORT.unwrap_or_else(|| "8080");
-    let address = format!("http://{}.{}:{}/", PROTOCOL, host, port);
-    let on_dev_channel = CHANNEL.unwrap_or_else(|| "development") == "development";
-
-    // Build the webview. A naive approach currently, but it works for now.
-    let _webview = WebViewBuilder::new(window)?
-        .with_custom_protocol(PROTOCOL.into(), utils::handle_req)
-        .with_url(&address)?
+    let proxy = aero.proxy();
+    let builder = WebViewBuilder::new()
+        .with_custom_protocol(PROTOCOL.into(), |_id, req| utils::handle_req(&req))
+        .with_url(&url)
         .with_accept_first_mouse(true)
-        .with_navigation_handler(|s| {
-            log::info!("{}", s);
+        .with_navigation_handler(|url| {
+            log::info!("navigating to {url}");
             true
         })
-        .with_ipc_handler(move |window, req| {
-            if req == "window_drag" {
-                let _ = window.drag_window();
-            } else if req == "window_minimize" {
-                window.set_minimized(true);
-            } else if req == "window_close" {
-                aero.send(AeroEvent::Request(AeroRequest::CloseWindow));
-            }
+        .with_ipc_handler(move |req| {
+            let event = match req.body().as_str() {
+                "window_drag" => UserEvent::DragWindow,
+                "window_minimize" => UserEvent::Minimize,
+                "window_close" => UserEvent::Aero(AeroEvent::Request(AeroRequest::CloseWindow)),
+                other => {
+                    log::debug!("unhandled ipc message: {other}");
+                    return;
+                }
+            };
+            let _ = proxy.send_event(event);
         })
-        .with_devtools(on_dev_channel)
-        .build()?;
+        .with_devtools(on_dev_channel);
+
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    )))]
+    let _webview = {
+        use tao::platform::unix::WindowExtUnix;
+        use wry::WebViewBuilderExtUnix;
+        builder.build_gtk(window.default_vbox().expect("missing gtk vbox"))?
+    };
+    #[cfg(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "android"
+    ))]
+    let _webview = builder.build(&window)?;
+
+    log::info!("loading {url}");
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::NewEvents(StartCause::Init) => {}
             Event::WindowEvent {
-                window_id: _,
-                event: window_event,
+                event: WindowEvent::CloseRequested,
                 ..
-            } => match window_event {
-                WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
-                }
-                _ => log::debug!("unhandled window_event: {:?}", window_event),
-            },
-            Event::UserEvent(aero_event) => match aero_event {
-                AeroEvent::Notification(notification) => {
-                    log::info!("Notification {:?}", notification);
-                }
-                AeroEvent::Request(request) => {
-                    log::info!("Request {:?}", request);
-                    if let AeroRequest::CloseWindow = request {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                }
-            },
-            _ => {
-                log::info!("unhandled event");
+            } => *control_flow = ControlFlow::Exit,
+            Event::UserEvent(UserEvent::DragWindow) => {
+                let _ = window.drag_window();
             }
+            Event::UserEvent(UserEvent::Minimize) => window.set_minimized(true),
+            Event::UserEvent(UserEvent::Aero(AeroEvent::Request(AeroRequest::CloseWindow))) => {
+                *control_flow = ControlFlow::Exit;
+            }
+            Event::UserEvent(UserEvent::Aero(event)) => log::info!("aero event: {event:?}"),
+            _ => {}
         }
     });
 }

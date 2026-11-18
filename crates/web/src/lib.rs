@@ -1,10 +1,11 @@
-use aero_engine::{event::{AeroEvent, Notification, Request}, window::WindowId};
+use aero_engine::{
+    event::{AeroEvent, Notification, Request},
+    window::WindowId,
+};
 use js_sys::Promise;
 use std::fmt::Debug;
 use wasm_bindgen::prelude::*;
 
-mod message;
-mod task;
 
 #[wasm_bindgen]
 pub struct AeroServer {
@@ -25,11 +26,10 @@ impl AeroServer {
             return Promise::reject(&JsValue::null());
         }
 
-        
         self.running = true;
         let decoded = serde_wasm_bindgen::from_value(request.clone());
         if let Err(e) = decoded {
-            return Promise::reject(&JsValue::from_str(&e.to_string()))
+            return Promise::reject(&JsValue::from_str(&e.to_string()));
         }
 
         let decoded: Request = decoded.unwrap();
@@ -37,12 +37,18 @@ impl AeroServer {
         log4wasm::info!(decoded_str);
 
         let window_id = WindowId::new();
-        Promise::resolve(&serde_wasm_bindgen::to_value(&Notification::Initialized { window_id: *window_id }).unwrap_or_else(|_| JsValue::null()))
+        Promise::resolve(
+            &serde_wasm_bindgen::to_value(&Notification::Initialized {
+                window_id: *window_id,
+            })
+            .unwrap_or_else(|_| JsValue::null()),
+        )
     }
 
     #[wasm_bindgen(js_name = onMessage)]
     pub fn on_message(&self, msg: JsValue) {
-        let decoded = serde_wasm_bindgen::from_value(msg).unwrap_or_else(|_| AeroEvent::Notification(Notification::Error));
+        let decoded = serde_wasm_bindgen::from_value(msg)
+            .unwrap_or(AeroEvent::Notification(Notification::Error));
         let fmt = format!("received msg {:?}", decoded);
         log4wasm::info!(fmt);
     }
@@ -56,7 +62,6 @@ impl Drop for AeroServer {
 
 impl Debug for AeroServer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ServerService")
-            .finish()
+        f.debug_struct("ServerService").finish()
     }
 }

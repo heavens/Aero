@@ -1,12 +1,11 @@
 import classNames from "classnames"
-import React, { RefObject } from "react"
-import { createRoot } from "react-dom/client";
+import React, { RefObject, SVGAttributes } from "react"
 import { OcticonSymbolType } from "./octicons"
 
 interface OcticonProps {
   readonly type: OcticonSymbolType;
   readonly styled?: React.CSSProperties;
-  readonly attributes?: React.AriaAttributes;
+  readonly attributes?: SVGAttributes<any>;
   readonly className?: string;
 }
 
@@ -29,9 +28,8 @@ export class Octicon extends React.Component<OcticonProps, OcticonState> {
     const viewBox = `0 0 ${type.w} ${type.h}`;
     const className = classNames('octicon', this.props.className);
     const style = {
-      height: "16px",
-      flexShrink: "0",
-      fill: "currentcolor",
+      width: `${type.w}px`,
+      height: `${type.h}px`,
       ...this.props.styled
     };
     return (
@@ -42,27 +40,12 @@ export class Octicon extends React.Component<OcticonProps, OcticonState> {
         ref={this.svgRef}
         tabIndex={-1}
         style={style}
-        {...attributes}
         onMouseEnter={() => this.setState({ active: true })}
         onMouseLeave={() => this.setState({ active: false })}
       >
-        <path fillRule={type.fr} d={type.d} />
+        {attributes && <g {...attributes}><path fillRule={type.fr} d={type.d} /></g>}
+        {!attributes && <path fillRule={type.fr} d={type.d} />}
       </svg>
     )
   }
-}
-
-export function createOcticonElement(
-  symbol: OcticonSymbolType,
-  className?: string,
-  id?: string
-) {
-  const wrapper = document.createElement('div');
-  wrapper.id = id ?? ''
-  if (className !== undefined) {
-    wrapper.classList.add(className)
-  }
-  const octicon = <Octicon type={symbol} />
-  createRoot(wrapper).render(octicon)
-  return wrapper
 }

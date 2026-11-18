@@ -1,18 +1,15 @@
-import { AeroServer } from "../pkg/zephyr";
+import { AeroServer } from "aero-ui";
 import { InitRequest } from "./api";
-
-const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8");
 
 let worker: ServerWorker;
 let initialized = false;
+
 globalThis.addEventListener("message", async (event: MessageEvent) => {
   if (!initialized) {
     worker = new ServerWorker();
     initialized = true;
   }
 
-  console.log(event.data);
   worker.server.onMessage(event.data);
 });
 
@@ -29,8 +26,8 @@ export default class ServerWorker {
     // Await the result returned from attempting to spawn the server process.
     let initRequest: InitRequest = {
       type: "Initialize",
-      addr: window.location.host,
-      workspacePath: "/"
+      uri: window.location.host,
+      path: "/"
     };
     return await this.server.initialize(initRequest);
   }

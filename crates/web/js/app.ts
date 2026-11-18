@@ -1,4 +1,4 @@
-const { App, RpcClient } = await import("zephyr-ui");
+const { AeroWindow, RpcClient } = await import("aero-ui");
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import "./../../../static/theme.less";
@@ -16,7 +16,6 @@ async function run() {
     // in the event of a failure or passing in required runtime values on success.
     const response = await spawnServer();
     loadAppWindow(response);
-    console.log("Loaded app window.")
     initialized = true;
   }
 }
@@ -27,9 +26,9 @@ async function run() {
 function loadAppWindow(notif: NotifyInitialized) {
   const el = document.getElementById("app");
   const root = createRoot(el);
-    root.render(createElement(App, {
-      browser: false,
-    }));
+  root.render(createElement(AeroWindow, {
+    browser: notif?.browser || false,
+  }));
 }
 
 /**

@@ -1,14 +1,24 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "jsx": "preserve",
+        "jsx": "react-jsx",
         "composite": true,
-        "moduleResolution": "node",
-        "lib": ["DOM", "ESNext"],
-        "types": ["react", "react-dom"],
+        "lib": [
+            "DOM",
+            "ESNext"
+        ],
+        "types": [
+            "react",
+            "react-dom",
+        ],
         "outDir": "dist",
-        "rootDir": "src",
     },
-    "include": ["**/*"],
-    "exclude": ["node_modules"]
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.svg",
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }

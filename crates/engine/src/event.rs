@@ -18,8 +18,8 @@ pub enum Notification {
 #[serde(tag = "type")]
 pub enum Request {
     Initialize {
-        addr: String,
-        workspacePath: Option<String>
+        uri: String,
+        path: Option<String>
     },
     CloseWindow
 }

@@ -1,436 +1,202 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import { styled } from "styletron-react";
-import TextPlane from "./TextPlane";
-import { Line, Point } from "./types";
-import { BehaviorSubject, interval, observeOn, takeUntil, timeInterval } from "rxjs";
+import React, { ReactNode, RefObject } from "react";
+import { Area2 } from "../renderer/layout";
+import { RGBAColor } from "../renderer/Color";
+import { Viewport } from "../renderer/Viewport";
+import { Font, load } from "opentype.js";
+import LoadingScreen from "../components/LoadingScreen";
 
-const CURSOR_BLINK_RESUME_DELAY = 300;
-const CURSOR_BLINK_PERIOD = 800;
-
-const Root = styled("div", {
-  width: "100%",
-  height: "100%",
-  overflow: "hidden",
-  cursor: "text"
-});
-
-type TextEditorProps = {
+export type TextEditorProps = {
+  children?: ReactNode | ReactNode[];
   rowCount?: number;
-  dispatch?: () => void;
-  width?: number;
-  height?: number;
-  scrollTop?: number;
-  firstVisibleRow?: number;
-  showLocalCursors?: boolean;
-  selections?: Array<any>;
-  lines?: Array<Line>;
+  firstVisibleRow: number;
   scrollLeft?: number;
   paddingLeft?: number;
-  lineHeight?: number;
-  className?: string;
-  widestRow?: number;
-  horizonAutoscroll?: {
-    startingLine: Line;
-    endingLine: Line;
-    start: Point;
-    end: Point;
-  };
-  horizontalMargin?: number;
+  widestRow?: string;
+  horizontalMargin: number;
+  fontSize: number;
+  lineHeight: number;
 };
 
 type TextEditorState = {
-  width: number;
-  height: number;
-  scrollLeft: number;
-  showLocalCursors: boolean;
-  cursorsBlinking: boolean;
+  initialized: boolean;
+  font: Font | null;
+  deviceScale: Area2;
+  rect: Area2 | null;
 };
 
 export class TextEditor extends React.Component<TextEditorProps, TextEditorState> {
-  debouncedStartCursorBlinking: () => void;
-  private destroyed: BehaviorSubject<boolean>;
-  private cursorBlinkAnimation;
-  paddingLeft: number;
-  resizeObserver: ResizeObserver;
-  textPlane: TextPlane;
-  element: HTMLTextAreaElement;
+
   cursorBlinkIntervalHandle: number;
-  baseCharWidth: any;
-  longestLineWidth: any;
-  longestLine: number;
-
-  static getDerivedStateFromProps(nextProps: { width: null; height: null; }, prevState: { width: any; height: any; }) {
-    let derivedState = null;
-
-    if (nextProps.width != null && nextProps.width !== prevState.width) {
-      derivedState = { width: nextProps.width };
-    }
-
-    if (nextProps.height != null && nextProps.height !== prevState.height) {
-      if (derivedState) {
-        derivedState.height = nextProps.height;
-      } else {
-        derivedState = { height: nextProps.height };
-      }
-    }
-
-    return derivedState;
-  }
+  longestLineWidth: number;
+  longestLine: string;
+  private baseCharWidth: number;
+  private element: RefObject<HTMLDivElement>;
 
   constructor(props: TextEditorProps) {
     super(props);
-    this.handleMouseDown = this.handleMouseDown.bind(this);
-    this.handleMouseWheel = this.handleMouseWheel.bind(this);
-    this.handleKeyDown = this.handleKeyDown.bind(this);
-    this.pauseCursorBlinking = this.pauseCursorBlinking.bind(this);
-    this.destroyed = new BehaviorSubject(false);
-    this.cursorBlinkAnimation = interval(CURSOR_BLINK_RESUME_DELAY)
-      .pipe(timeInterval())
-      .pipe(takeUntil(this.destroyed))
-      .subscribe((interval) => {
-        this.processCursorAnim(interval.value);
-      });
-    this.paddingLeft = 5;
-    this.state = { width: 800, height: 600, scrollLeft: 0, showLocalCursors: true, cursorsBlinking: true };
-  }
+    this.state = {
+      initialized: false,
+      font: null,
+      rect: new Area2(800, 600),
+      deviceScale: new Area2(aero.dpr, aero.dpr),
+    };
+    this.element = React.createRef();
 
-  componentDidMount() {
-    const element = ReactDOM.findDOMNode(this) as HTMLTextAreaElement;
-    this.resizeObserver = new ResizeObserver(([{ contentRect }]) => {
-      this.componentDidResize({
-        width: contentRect.width,
-        height: contentRect.height
-      });
-    });
-    this.resizeObserver.observe(element);
-
-    if (this.props.width == null || this.props.height == null) {
-      const dimensions = {
-        width: element.offsetWidth,
-        height: element.offsetHeight
-      };
-      this.componentDidResize(dimensions);
-      this.setState({});
-    }
-
-    element.addEventListener("wheel", this.handleMouseWheel, { passive: true });
-    element.addEventListener("mousedown", this.handleMouseDown, {
-      passive: true
-    });
-  }
-
-  componentWillUnmount() {
-    if (!this.destroyed.closed) {
-      this.destroyed.next(true);
-      this.destroyed = null;
-    }
-
-    this.stopCursorBlinking();
-    const element = ReactDOM.findDOMNode(this);
-    element.removeEventListener("wheel", this.handleMouseWheel, {
-      capture: true
-    });
-    this.resizeObserver.disconnect();
-  }
-
-  componentDidResize(measurements: { width: any; height: any; }) {
-    // this.props.dispatch({
-    //   type: "SetDimensions",
-    //   width: measurements.width,
-    //   height: measurements.height
-    // });
+    load('./iosevka-regular.ttf', (_, font) => {
+      this.setState({ font, initialized: true });
+    })
   }
 
   render() {
-    const { width, height, showLocalCursors, lineHeight, scrollTop, scrollLeft, selections, firstVisibleRow, rowCount, lines } = this.props;
-    this.flushHorizontalAutoscroll();
-    return <Root>
-      <TextPlane showLocalCursors={showLocalCursors}
-        lineHeight={lineHeight}
-        scrollTop={scrollTop}
-        paddingLeft={this.paddingLeft}
-        scrollLeft={scrollLeft}
-        width={width}
-        height={height}
-        selections={selections}
-        firstVisibleRow={firstVisibleRow}
-        totalRowCount={rowCount}
-        lines={lines}>
-          <></>
-      </TextPlane>
-    </Root>
-    // return createElement(
-    //   Root,
-    //   {
-    //     tabIndex: -1,
-    //     onKeyDown: this.handleKeyDown,
-    //     ref: (element: HTMLTextAreaElement) => {
-    //       this.element = element;
-    //     }
-    //   },
-    //   createElement(TextPlane, {
-    //     showLocalCursors: this.state.showLocalCursors,
-    //     lineHeight: this.props.line_height,
-    //     scrollTop: this.props.scroll_top,
-    //     paddingLeft: this.paddingLeft,
-    //     scrollLeft: this.getScrollLeft(),
-    //     height: this.props.height ?? 800,
-    //     width: this.getScrollWidth(),
-    //     selections: this.props.selections,
-    //     firstVisibleRow: this.props.first_visible_row,
-    //     totalRowCount: this.props.total_row_count,
-    //     lines: this.props.lines,
-    //     ref: (ref: TextPlane) => this.textPlane = ref,
-    //   })
-    // );
-    // createElement(Action, {
-    //   type: "AddSelectionAbove",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "AddSelectionBelow",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, { type: "SelectUp", onWillDispatch: this.pauseCursorBlinking }),
-    // createElement(Action, {
-    //   type: "SelectDown",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectLeft",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectRight",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectToBeginningOfWord",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectToEndOfWord",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectToBeginningOfLine",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectToEndOfLine",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectToTop",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "SelectToBottom",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, { type: "MoveUp", onWillDispatch: this.pauseCursorBlinking }),
-    // createElement(Action, { type: "MoveDown", onWillDispatch: this.pauseCursorBlinking }),
-    // createElement(Action, { type: "MoveLeft", onWillDispatch: this.pauseCursorBlinking }),
-    // createElement(Action, {
-    //   type: "MoveRight",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "MoveToBeginningOfWord",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "MoveToEndOfWord",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "MoveToBeginningOfLine",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "MoveToEndOfLine",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "MoveToTop",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "MoveToBottom",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, {
-    //   type: "Backspace",
-    //   onWillDispatch: this.pauseCursorBlinking
-    // }),
-    // createElement(Action, { type: "Delete", onWillDispatch: this.pauseCursorBlinking })
-
-  }
-
-  handleMouseDown(event: MouseEvent): void {
-    if (this.canUseTextPlane()) {
-      this.handleClick(event);
-      switch (event.detail) {
-        case 2:
-          this.handleDoubleClick();
-          break;
-        case 3:
-          this.handleTripleClick();
-          break;
-      }
+    if (this.state.font == null) {
+      return <LoadingScreen />
     }
+
+    return <div id="workspace-area"
+      ref={this.element}
+      style={{
+        display: "flex",
+        width: `${this.state.rect?.width}px`,
+        height: `${this.state.rect?.height}px`,
+      }}>
+      <Viewport
+        id="aero-editor"
+        $style={{
+          border: `2px solid ${aero.context.theme.colors.sideBar.border}`,
+        }}
+        initialWidth={this.state.rect?.width}
+        initialHeight={this.state.rect?.height}
+        fg={RGBAColor.fromHex(aero.context.theme.colors.sideBar.fg)}
+        lineHeight={this.props.lineHeight}
+        fontWidth={this.props.fontSize}
+        font={this.state.font} />
+    </div>
   }
 
-  handleClick({ clientX, clientY }: { clientX: number; clientY: number; }) {
-    const { scrollTop, lineHeight, firstVisibleRow, lines } = this.props;
-    const { scrollLeft } = this.state;
-    const targetX =
-      clientX - this.element.offsetLeft + scrollLeft - this.getGutterWidth();
-    const targetY = clientY - this.element.offsetTop + scrollTop;
-    const row = Math.max(0, Math.floor(targetY / lineHeight));
-    const line = lines[row - firstVisibleRow];
-    if (line != null) {
-      const glyphWidths = this.textPlane.layoutLine(line);
-      let column = 0;
-      let x = 0;
-      while (x < targetX && column < line) {
-        const glyphWidth = glyphWidths[column];
-        if (targetX > x + glyphWidth / 2) {
-          column++;
-          x += glyphWidth;
-        } else {
-          break;
-        }
-      }
+  getGutterWidth() {
+    return (
+      // this.gutterWidth(this.state.cursor.rowCount) +
+      this.props.paddingLeft
+    );
+  }
 
-      this.pauseCursorBlinking();
-      // this.props.dispatch({
-      //   type: "SetCursorPosition",
-      //   row,
-      //   column,
-      //   autoscroll: false
-      // });
+  // handleMouseWheel(event: WheelEvent) {
+  //   const { cursor } = this.state;
+  //   if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+  //     this.setState({ cursor: Point.at(cursor.x + event.deltaX, cursor.y), scrollLeft: this.state.scrollLeft + event.deltaX });
+  //   } else {
+  //     const scrollTop = this.state.scrollTop + event.deltaY + this.element.current.scrollTop;
+  //     this.setState({ scrollTop, cursor: Point.at(cursor.x, scrollTop % this.state.lineHeight) })
+  //   }
+  // }
+
+  public gutterWidth(totalRowCount: number) {
+    if (!this.state.initialized) {
+      return 0;
     }
-  }
 
-  handleDoubleClick() {
-    this.pauseCursorBlinking();
-    // this.props.dispatch({ type: "SelectWord" });
-  }
-
-  handleTripleClick() {
-    this.pauseCursorBlinking();
-    // this.props.dispatch({ type: "SelectLine" });
-  }
-
-  handleMouseWheel(event: WheelEvent) {
-    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-      this.setScrollLeft(this.state.scrollLeft + event.deltaX);
-    } else {
-      // this.props.dispatch({ type: "UpdateScrollTop", delta: event.deltaY });
-    }
-  }
-
-  handleKeyDown(event: { metaKey: any; ctrlKey: any; altKey: any; key: string | any[]; }) {
-    const hasNoModifierKeys = !event.metaKey && !event.ctrlKey && !event.altKey;
-    if (event.key.length === 1 && hasNoModifierKeys) {
-      // this.props.dispatch({ type: "Edit", text: event.key });
-    } else if (event.key === "Enter") {
-      // this.props.dispatch({ type: "Edit", text: "\n" });
-    }
-  }
-
-  pauseCursorBlinking() {
-    this.stopCursorBlinking();
-    this.debouncedStartCursorBlinking();
-  }
-
-  stopCursorBlinking() {
-    if (this.state.cursorsBlinking) {
-      window.clearInterval(this.cursorBlinkIntervalHandle);
-      this.cursorBlinkIntervalHandle = null;
-      this.setState({
-        showLocalCursors: true,
-        cursorsBlinking: false
-      });
-    }
-  }
-
-  processCursorAnim(interval: number) {
-    if (!this.state.cursorsBlinking) {
-      this.cursorBlinkIntervalHandle = window.setInterval(() => {
-        this.setState({ showLocalCursors: !this.state.showLocalCursors });
-      }, CURSOR_BLINK_PERIOD / 2);
-
-      this.setState({
-        cursorsBlinking: true,
-        showLocalCursors: false
-      });
-    }
+    const digitsCount = Math.floor(Math.log10(totalRowCount)) + 1;
+    return Math.ceil(digitsCount * this.state.font.getAdvanceWidth("9", this.props.fontSize));
   }
 
   focus() {
-    this.element.focus();
+    this.element.current.focus();
   }
 
-  flushHorizontalAutoscroll() {
-    const { horizonAutoscroll, horizontalMargin, width } = this.props;
-    const gutterWidth = this.getGutterWidth();
-    const baseCharWidth = this.getBaseCharacterWidth();
-    if (
-      horizonAutoscroll &&
-      width &&
-      gutterWidth &&
-      baseCharWidth &&
-      this.canUseTextPlane()
-    ) {
-      const horizontalMarginInPixels = baseCharWidth * horizontalMargin;
-      const desiredScrollLeft =
-        this.textPlane.measureLine(
-          horizonAutoscroll.startingLine,
-          horizonAutoscroll.start.column
-        ) - horizontalMarginInPixels;
-      const desiredScrollRight =
-        this.textPlane.measureLine(
-          horizonAutoscroll.endingLine,
-          horizonAutoscroll.end.column
-        ) +
-        gutterWidth +
-        horizontalMarginInPixels;
 
-      // This function will be called during render, so we avoid calling
-      // setState and we manually manipulate this.state instead.
-      if (desiredScrollLeft < this.getScrollLeft()) {
-        this.setState({ scrollLeft: this.constrainScrollLeft(desiredScrollLeft) });
-      }
-      if (desiredScrollRight > this.getScrollRight()) {
-        this.setState({
-          scrollLeft: this.constrainScrollLeft(
-            desiredScrollRight - width
-          )
-        });
-      }
+  getSegmentWidth(line: string, column = line.length): number {
+    if (line.length == 0) {
+      return 0;
     }
+
+    return this.getScaledWidth(line)
+      .slice(0, Math.min(line.length, column))
+      .reduce((acc, width) => acc + width);
   }
 
-  getScrollLeft() {
-    return this.constrainScrollLeft(this.state.scrollLeft);
+  /**
+   * Gets the scaled width of the line.
+   * @param line 
+   * @returns 
+   */
+  public getScaledWidth(line: string) {
+    return this
+      .calculateWidth(line)
+      .map(width => width);
   }
 
-  getScrollRight() {
-    if (this.props.width) {
-      return this.getScrollLeft() + this.props.width;
-    } else {
-      return this.getScrollLeft();
+  /**
+   * Scans over all characters in the passed-in string value making up a line entry in the document. Each character is evaluated
+   * from LTR with some evaluations being less costly than others if the glyph is not found in the cache. The resolved width of each 
+   * glyph is then inserted into an array of widths of the entire line where the index of the insertion point is relative to the
+   * characters position in the line.
+   *  
+   * @returns An int array containing an integer value denoting the width of the glyph. The ordering of widths in the array are
+   * ordered in respect to the position of the glyph on the associated line.
+   */
+  calculateWidth(line: string): number[] {
+    let x = 0;
+    const { fontSize } = this.props;
+    const { font } = this.state;
+    const glyphWidths = new Array(line.length);
+    for (let i = 0; i < line.length; i++) {
+      const width = font.getAdvanceWidth(line, fontSize);
+      glyphWidths[i] = width;
+      x += width;
     }
+    return glyphWidths;
   }
 
-  setScrollLeft(scrollLeft: any) {
-    this.setState({
-      scrollLeft: this.constrainScrollLeft(scrollLeft)
-    });
-  }
+  // autoscroll() {
+  //   const { horizonAutoscroll, horizontalMargin, width } = this.props;
+  //   const gutterWidth = this.getGutterWidth();
+  //   const baseCharWidth = this.getBaseCharacterWidth();
+  //   if (
+  //     this.canUseTextPlane() &&
+  //     horizonAutoscroll &&
+  //     width &&
+  //     gutterWidth &&
+  //     baseCharWidth
+  //   ) {
+  //     const horizontalMarginInPixels = baseCharWidth * horizontalMargin;
+  //     const desiredScrollLeft =
+  //       this.getSegmentWidth(
+  //         horizonAutoscroll.startingLine,
+  //         horizonAutoscroll.start.x
+  //       ) - horizontalMarginInPixels;
+  //     const desiredScrollRight =
+  //       this.getSegmentWidth(
+  //         horizonAutoscroll.endingLine,
+  //         horizonAutoscroll.end.x
+  //       ) +
+  //       gutterWidth +
+  //       horizontalMarginInPixels;
+
+  //     if (desiredScrollLeft < this.getScrollLeft()) {
+  //       // this.setState({ scrollLeft: this.constrainScrollLeft(desiredScrollLeft) });
+
+  //     }
+  //     if (desiredScrollRight > this.getScrollRight()) {
+  //       // this.setState({
+  //       //   scrollLeft: this.constrainScrollLeft(
+  //       //     desiredScrollRight - width
+  //       //   )
+  //       // });
+  //     }
+  //   }
+  // }
+
+  // getScrollLeft() {
+  //   return this.constrainScrollLeft(this.state.scrollLeft);
+  // }
+
+  // getScrollRight() {
+  //   if (this.props.width) {
+  //     return this.getScrollLeft() + this.props.width;
+  //   } else {
+  //     return this.getScrollLeft();
+  //   }
+  // }
 
   constrainScrollLeft(scrollLeft: number) {
     return Math.max(0, Math.min(scrollLeft, this.getMaxScrollLeft()));
@@ -438,21 +204,21 @@ export class TextEditor extends React.Component<TextEditorProps, TextEditorState
 
   getMaxScrollLeft() {
     const contentWidth = this.getContentWidth();
-    if (contentWidth != null && this.props.width != null) {
-      return Math.max(0, contentWidth - this.props.width);
+    if (contentWidth != null && this.state.rect.width != null) {
+      return Math.max(0, contentWidth - this.state.rect.width);
     } else {
       return 0;
     }
   }
 
-  getScrollWidth() {
-    const contentWidth = this.getContentWidth();
-    if (contentWidth != null && this.props.width != null) {
-      return Math.max(contentWidth, this.props.width);
-    } else {
-      return 800;
-    }
-  }
+  // getScrollWidth() {
+  //   const contentWidth = this.getContentWidth();
+  //   if (contentWidth != null && this.props.width != null) {
+  //     return Math.max(contentWidth, this.state.width);
+  //   } else {
+  //     return 0;
+  //   }
+  // }
 
   getContentWidth() {
     const longestLineWidth = this.getLongestLineWidth();
@@ -470,33 +236,30 @@ export class TextEditor extends React.Component<TextEditorProps, TextEditorState
   }
 
   getBaseCharacterWidth() {
-    if (this.baseCharWidth == null && this.canUseTextPlane()) {
-      this.baseCharWidth = this.textPlane.measureLine("X");
+    if (this.baseCharWidth == null) {
+      this.baseCharWidth = this.getSegmentWidth("W");
     }
     return this.baseCharWidth;
   }
 
   getLongestLineWidth() {
-    const { widestRow: longestLine } = this.props;
-    if (this.longestLine != longestLine && this.canUseTextPlane()) {
-      this.longestLine = longestLine;
-      this.longestLineWidth = this.textPlane.measureLine(longestLine);
+    const { widestRow } = this.props;
+    if (this.longestLine != widestRow) {
+      this.longestLine = widestRow;
+      console.log("longesss");
+      this.longestLineWidth = this.getSegmentWidth(widestRow);
     }
     return this.longestLineWidth;
   }
 
-  getGutterWidth() {
-    if (this.canUseTextPlane()) {
-      return (
-        this.textPlane.getGutterWidth(this.props.rowCount) +
-        this.paddingLeft
-      );
-    } else {
-      return null;
-    }
-  }
+  // public documentGutterWidth() {
+  //   return (
+  //     this.getGutterWidthOf(this.state.rowCount) +
+  //     this.props.paddingLeft
+  //   );
+  // }
 
   canUseTextPlane() {
-    return this.textPlane && this.textPlane.isReady();
+    return this.state.initialized
   }
 }

@@ -1,11 +1,11 @@
 {
-  "name": "zephyr-web",
-  "packageManager": "yarn@3.5.0",
+  "name": "aero-web",
+  "version": "0.1.0",
+  "private": true,
   "main": "./js/app.ts",
   "dependencies": {
-    "assert": "^2.0.0",
-    "typescript": "^5.1.6",
-    "ws": "^8.13.0",
-    "zephyr-ui": "workspace:^"
+    "aero-ui": "workspace:^",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

@@ -4,23 +4,22 @@
       "ESNext"
     ],
     "jsx": "react-jsx",
-    "sourceMap": true,
     "esModuleInterop": true,
     "module": "ESNext",
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "target": "ES2019",
+    "target": "ESNext",
     "preserveConstEnums": true,
     "skipLibCheck": true,
     "useUnknownInCatchVariables": false,
     "baseUrl": ".",
     "allowSyntheticDefaultImports": true,
     "paths": {
-      "zephyr-ui": [
+      "aero-ui": [
         "./packages/ui/src/"
       ],
-      "zephyr-wasm": [
+      "aero-web": [
         "./crates/web/js/"
       ]
     },

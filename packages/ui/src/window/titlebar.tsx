@@ -1,26 +1,29 @@
 import React from "react";
 import { ReactNode } from "react";
-import { Ctx, Theme } from "../Theme";
+import { Theme } from "../Theme";
 import { Octicon } from "../components/octicon/Octicon";
 import { x, zoomOut } from "../components/octicon/octicons";
 import { RendererIpc } from "..";
 import { styled, withStyle } from "styletron-react";
+import { Query } from "../Query";
 
 const WindowControlContainer = styled("div", {
   display: "flex",
   justifyContent: "space-evenly",
-  maxHeight: "inherit"
 });
 
 const WindowControl = styled("button", (props: { $theme?: Theme }) => ({
   display: "flex",
   flex: "1",
+  justifyItems: "stretch",
+  height: "100%",
+  padding: "0",
   alignItems: "center",
   justifyContent: "center",
+  background: "transparent",
   borderColor: "transparent",
   borderWidth: "1px",
   borderStyle: "solid",
-  backgroundColor: "transparent"
 }));
 
 const BasicWindowControl = withStyle(WindowControl, (props: { $theme: Theme }) => ({
@@ -39,28 +42,22 @@ const DangerWindowControl = withStyle(WindowControl, (props: { $theme: Theme }) 
  * The root component of the titlebar with an optional `$isDark` property used to conditionally set the LaF.
  */
 const StyledTitleBar = styled("div", (props: { $theme?: Theme }) => ({
-  background: props.$theme.colors.app.bg,
+  background: props.$theme.colors.pane.bg,
+  color: props.$theme.colors.pane.fg,
+  minHeight: "28px",
   borderBottom: `1px solid ${props.$theme.colors.titleBar.border}`,
+  flex: "1",
 }));
 
 type Props = {
-  children?: ReactNode[];
-  style?: React.CSSProperties;
-  isWindowFocused?: boolean;
   title: ReactNode;
-  controls?: boolean;
-  hidden?: boolean;
-  isMaximized?: boolean;
-  onCloseClick?: CallableFunction;
-  onMinimizeClick?: CallableFunction;
-  onMaximizeClick?: CallableFunction;
-  onRestoreDownClick?: CallableFunction;
 }
 
 /**
  * A component for creating, and updating, the look-and-feel aspect of the title bar.
  */
 export default class TitleBar extends React.Component<Props> {
+  
   constructor(props: Props) {
     super(props);
   }
@@ -92,21 +89,9 @@ export default class TitleBar extends React.Component<Props> {
   }
 
   render() {
-    const {
-      style,
-      title,
-      hidden,
-    } = this.props;
+    const { title } = this.props;
 
-    let styled: React.CSSProperties;
-    if (style) {
-      styled = Object.assign(style, {
-        visibility: !hidden ? 'visible' : 'hidden',
-        display: !hidden ? 'flex' : 'none'
-      });
-    }
-
-    const theme = this.context as Theme;
+    const theme = Query.using(aero.context).select<Theme>(ctx => ctx.theme).unwrap;
     return (
       <StyledTitleBar className="titlebar" $theme={theme}>
         <span className="drag-region" />
@@ -125,5 +110,3 @@ export default class TitleBar extends React.Component<Props> {
     );
   }
 }
-
-TitleBar.contextType = Ctx;

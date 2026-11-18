@@ -39,40 +39,28 @@ impl AeroWindow {
         Self(Arc::new(Mutex::new(WindowCtx::default())))
     }
 
-    pub fn clone(&self) -> Arc<Mutex<WindowCtx>> {
-        self.0.clone()
-    }
-
     pub fn width(&self) -> f64 {
         self.0
-            .lock()
-            .and_then(|ctx| Ok(ctx.width))
+            .lock().map(|ctx| ctx.width)
             .unwrap_or_default()
     }
 
     pub fn height(&self) -> f64 {
         self.0
-            .lock()
-            .and_then(|ctx| Ok(ctx.height))
+            .lock().map(|ctx| ctx.height)
             .unwrap_or_default()
     }
 }
 
 #[derive(Debug)]
 pub struct WindowCtx {
-    id: WindowId,
     width: f64,
     height: f64,
-}
-
-impl WindowCtx {
-    
 }
 
 impl Default for WindowCtx {
     fn default() -> Self {
         Self {
-            id: WindowId::new(),
             width: 800.0f64,
             height: 650.0f64,
         }

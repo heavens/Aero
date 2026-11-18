@@ -2,16 +2,19 @@ import React, { ChangeEvent, ReactNode, RefObject } from "react";
 import ReactDOM from "react-dom";
 import { Octicon } from "./octicon/Octicon";
 import { search, terminal } from "./octicon/octicons";
-import Spinner from "./Spinner";
+import Spinner from "./LoadingScreen";
 import { styled } from "styletron-react";
-import { Ctx, Theme } from "../Theme";
+import { Theme } from "../Theme";
+import { Query } from "../Query";
+import { AeroContext } from "..";
 
 const Root = styled("div", (props: { $theme: Theme }) => ({
   boxShadow: "0 6px 12px -2px rgba(0, 0, 0, 0.4)",
-  background: props.$theme.colors.app.bg,
+  background: props.$theme.colors.pane.bg,
   borderRadius: "2px",
   width: "500px",
-  marginTop: "20px"
+  marginTop: "20px",
+  zIndex: "5"
 }));
 
 const QueryInputContainer = styled("div", (props: { $theme: Theme }) => ({
@@ -43,6 +46,13 @@ const QueryInput = styled("input", (props: { $theme: Theme }) => ({
   }
 }));
 
+const InputIconWrapper = styled("div", (props: { $theme: Theme }) => ({
+  ":after": {
+    color: props.$theme.colors.pane.fg,
+    mixBlendMode: "difference",
+  }
+}));
+
 const SearchResultList = styled("ol", (props: { $theme?: Theme }) => ({
   listStyleType: "none",
   margin: "0 4px",
@@ -55,7 +65,7 @@ const SearchResultListItem = styled("li", (props: { $theme: Theme }) => ({
   listStyleType: "none",
   padding: "1.25em 1em",
   fontSize: "10pt",
-  borderBottom: `1px solid ${props.$theme.colors.app.border}`,
+  borderBottom: `1px solid ${props.$theme.colors.pane.border}`,
   backgroundColor: "transparent",
   ":hover": {
     cursor: "pointer",
@@ -98,8 +108,6 @@ class SelectedSearchResultListItem extends React.Component<Props> {
   }
 }
 
-SelectedSearchResultListItem.contextType = Ctx;
-
 type FileResult = {
   positions: number[];
   displayPath: string;
@@ -113,6 +121,7 @@ type FileFinderState = {
 }
 
 export default class CommandMenu extends React.Component<{}, FileFinderState> {
+  
   private inputEl: RefObject<HTMLInputElement>;
   constructor(props: {}) {
     super(props);
@@ -140,29 +149,39 @@ export default class CommandMenu extends React.Component<{}, FileFinderState> {
     this.setState({ processing: isBusy });
   }
 
+  // display: flex;
+  // background: rgb(138, 145, 153);
+  // filter: invert(50%);
+  // border-radius: 3px;
+  // /* padding: 0; */
+  // align-items: center;
+  // justify-content: center;
+  // /* position: relative; */
+  // height: 100%;
+  // min-width: 24px;
+  // min-height: 24px;
   render() {
-    let theme = this.context as Theme;
+    const theme = Query.using(aero.context).select((state: AeroContext) => state.theme).unwrap;
     return <Root $theme={theme}>
       <QueryInputContainer $theme={theme}>
-        <Octicon styled={{ fill: theme.colors.list.inactiveSelectionForeground }} type={this.state.queryInput.startsWith(">") ? terminal : search} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: "24px", minHeight: "24px", border: `"1px solid ${theme.colors.pane.border}`, background: theme.colors.pane.fg, filter: "invert(50%)", borderRadius: "3px" }}>
+          <InputIconWrapper $theme={theme}>
+            <Octicon styled={{ fill: theme.colors.list.inactiveSelectionForeground, mixBlendMode: "difference" }} type={this.state.queryInput.startsWith(">") ? terminal : search} />
+          </InputIconWrapper>
+        </div>
         <QueryInput $theme={theme} ref={this.inputEl} placeholder={"Search items in the workspace or enter '>' to switch to command mode"} value={this.state.queryInput} onChange={this.onInputChange} />
       </QueryInputContainer>
       {
         this.state.processing ?
           <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px", margin: "4px" }}><Spinner /></span> :
           <SearchResultList>
-            {this.state.results.map((result, i) => this.renderSearchResult(i, result, i === this.state.selectedIndex))}
+            {this.state.results.map((result, i) => this.renderSearchResult(theme, i, result, i === this.state.selectedIndex))}
           </SearchResultList>
       }
     </Root>
-    // createElement(Action, { type: "SelectPrevious" }),
-    // createElement(Action, { type: "SelectNext" }),
-    // createElement(Action, { type: "Confirm" }),
-    // createElement(Action, { type: "Close" })
   }
 
-  renderSearchResult(slot: number, result: FileResult, focused: boolean) {
-    let theme = this.context as Theme;
+  renderSearchResult(theme: Theme, slot: number, result: FileResult, focused: boolean) {
     const { positions, displayPath: display_path } = result;
     let pathIndex = 0;
     let queryIndex = 0;
@@ -203,5 +222,3 @@ export default class CommandMenu extends React.Component<{}, FileFinderState> {
     })
   }
 };
-
-CommandMenu.contextType = Ctx;

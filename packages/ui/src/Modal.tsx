@@ -2,18 +2,6 @@ import React, { ReactNode } from "react";
 import ReactDOM from "react-dom";
 import { styled } from "styletron-react";
 
-// const Backdrop = styled("div", {
-//   display: "block",
-//   position: "absolute",
-//   top: "31px",
-//   left: "0",
-//   width: "100vw",
-//   height: 90 +`vh`,
-//   background: "rgba(0, 0, 0, 0.4)",
-//   backdropFilter: "blur(5px)",
-//   opacity: 1
-// });
-
 const Root = styled("div", {
   position: "absolute",
   top: "31px",

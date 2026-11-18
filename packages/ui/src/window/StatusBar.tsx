@@ -1,11 +1,13 @@
-import React, { ReactNode } from "react";
-import { Ctx, DarkTheme, LightTheme, Theme } from "../Theme";
+import { ReactNode } from "react";
+import { Theme } from "../Theme";
 import { Octicon } from "../components/octicon/Octicon";
-import { gear, lightBulb, moon, sun } from "../components/octicon/octicons";
-import Spinner from "../components/Spinner";
-import { WorkspaceStatus, activeTheme, onWorkspaceStatusUpdate } from "../events";
+import { gear, moon, sun } from "../components/octicon/octicons";
+import { WorkspaceStatus, dispatchThemeUpdate, onWorkspaceStatusUpdate } from "../events";
 import { styled } from "styletron-react";
-import { Subscription } from "rxjs";
+import { View } from "../View";
+import { Query } from "../Query";
+import { AeroContext } from "..";
+import LoadingScreen from "../components/LoadingScreen";
 
 const Root = styled("div", (props: { $theme?: Theme }) => ({
     display: "flex",
@@ -14,7 +16,7 @@ const Root = styled("div", (props: { $theme?: Theme }) => ({
     position: "absolute",
     width: "100%",
     height: "31px",
-    padding: "0 30px",
+    padding: "0 16px",
     background: props.$theme.colors.statusBar.bg,
     borderTop: `1px solid ${props.$theme.colors.statusBar.border}`,
 }));
@@ -27,20 +29,20 @@ const QuickActions = styled("div", {
     justifyContent: "flex-start",
 });
 
-const ActionButton = styled("button", {
+const ActionButton = styled("button", (props: {$theme? : Theme}) => ({
     display: "flex",
     alignItems: "center",
     borderWidth: "1px",
     borderStyle: "solid",
     borderColor: "transparent",
-    backgroundColor: "transparent",
+    backgroundColor: `${props.$theme.colors.statusBar.bg}`,
     ":hover": {
         color: "white",
-        borderColor: "#8a9199",
+        borderColor: `${props.$theme.colors.statusBar.border}`,
         cursor: "pointer",
-        backgroundColor: "#8a919980"
+        backgroundColor: `${props.$theme.colors.statusBar.bg}`,
     }
-});
+}));
 
 const StatusContainer = styled("div", {
     display: "flex",
@@ -70,37 +72,27 @@ type State = {
     status: WorkspaceStatus;
 }
 
-export default class StatusBar extends React.Component<Props, State> {
-
-    private statusSubscription: Subscription;
+export default class StatusBar extends View<Props, State> {
 
     constructor(props: Props) {
         super(props);
         this.state = {
             status: { title: "" },
         }
-    }
-
-    componentDidMount(): void {
-        this.statusSubscription = onWorkspaceStatusUpdate.subscribe(newStatus => this.setState({ status: newStatus }))
-    }
-
-    componentWillUnmount(): void {
-        if (this.statusSubscription != null && !this.statusSubscription.closed) {
-            this.statusSubscription.unsubscribe();
-            this.statusSubscription = null;
-        }
+        this.subscribe(() => onWorkspaceStatusUpdate.subscribe(newStatus => this.setState({ status: newStatus })));
     }
 
     render() {
-        let theme = this.context as Theme;
+        const theme = Query.using(aero.context).select((state: AeroContext) => state.theme).unwrap;
         return <Root $theme={theme}>
             <QuickActions>
-                <ActionButton onClick={this.props.openSettings}><Octicon styled={{ fill: theme.colors.app.fg }} type={gear} /></ActionButton>
-                <ActionButton onClick={() => {
-                    activeTheme.next(theme.isDark ? LightTheme : DarkTheme);
-                }}>
-                    <Octicon styled={{ fill: theme.colors.app.fg }} type={theme.isDark ? sun : moon} />
+                <ActionButton $theme={theme} className="codicon codicon-layout-panel-justify"></ActionButton>
+                <ActionButton $theme={theme} className="codicon codicon-layout-panel"></ActionButton>
+                <ActionButton $theme={theme} className="codicon codicon-layout-sidebar-left"></ActionButton>
+                <ActionButton $theme={theme} className="codicon codicon-layout-sidebar-right"></ActionButton>
+                <ActionButton $theme={theme} onClick={this.props.openSettings}><Octicon styled={{ fill: theme.colors.pane.fg }} type={gear} /></ActionButton>
+                <ActionButton $theme={theme} onClick={() => dispatchThemeUpdate()}>
+                    <Octicon styled={{ fill: theme.colors.pane.fg }} type={theme.isDark ? sun : moon} />
                 </ActionButton>
             </QuickActions>
             {this.renderMessage(theme)}
@@ -111,10 +103,8 @@ export default class StatusBar extends React.Component<Props, State> {
         const { status } = this.state;
         const isBusy = status.title.length > 0;
         return <StatusContainer>
-            {isBusy && <Spinner style={{ fill: theme.colors.app.fg }} width={16} height={16} />}
+            {isBusy && <LoadingScreen style={{ fill: theme.colors.pane.fg, width: "16px", height: "16px" }} />}
             <StatusMessage>{status.title}</StatusMessage>
         </StatusContainer>
     }
 }
-
-StatusBar.contextType = Ctx;

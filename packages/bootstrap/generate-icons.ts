@@ -44,13 +44,13 @@ function parseXml(xml: string): Promise<XML2NodeJs> {
 
 /**
  * Normalizes the identifier for the generated Octicon name.
- * @param name 
- * @returns 
+ * @param name
+ * @returns
  */
 function getJsFriendlyName(name: string) {
   // Mack: Should we allow capitlization of the first character (effectively turning camelCase to PascalCase)? There's a lot of
-  // inconsistency in the JS/TS community when it comes to conventions... My better judgement wants to fallback to my
-  // java origins of `SOME_VAR` formatting seeing as these are top-level immutable constants.
+  // inconsistency in the JS/TS community when it comes to conventions... My better judgment wants to fallback to my
+  // java origins of `SOME_VAR` formatting seeing as these are top-level, immutable constants.
   // Also do we really need a whole dependency for just this... :|
   const sanitizedName = toCamelCase(name);
   return check(sanitizedName, 'es6', true) ? sanitizedName + '_' : sanitizedName
@@ -58,7 +58,7 @@ function getJsFriendlyName(name: string) {
 
 /**
  * Takes the latest release of Octicons by @Primer and codegens typed structs to be used within tsx context.
- * 
+ *
  * However, this may not really be even necessary to maintain anymore as the reason that initially warranted this task is not
  * as big of a concern.
  * @returns A promise for the code-generating task of Octicons.
@@ -105,7 +105,7 @@ function writeIcon(stream: fs.WriteStream, icon: OcticonProps) {
     `export const ${jsFriendlyName}: OcticonSymbolType = { viewBox: \"${viewBox}\", w: ${width}, h: ${height}, d: '${pathData}', fr: ${fillRule ? `'${fillRule}'` : 'undefined'
     }}\n\n`
   )
-};
+}
 
 /**
  * Runs the code-generation task.
